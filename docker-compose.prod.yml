@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CONFIGURATION: production
+    container_name: my-budget-prod
+    ports:
+      - "4200:80"
+    environment:
+      - NODE_ENV=production
