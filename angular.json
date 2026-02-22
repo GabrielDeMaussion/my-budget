@@ -25,7 +25,8 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "bootstrap-icons/font/bootstrap-icons.min.css"
             ]
           },
           "configurations": {

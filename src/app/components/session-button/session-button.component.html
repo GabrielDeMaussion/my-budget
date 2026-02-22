@@ -1,0 +1,21 @@
+@if(!isLoggedIn()) {
+<button class="btn btn-primary" (click)="forceLogin()">Iniciar Sesión</button>
+}
+@else {
+<div class="dropdown dropdown-end rounded-md px-1.5 hover:bg-base-100 cursor-pointer transition-colors">
+    <div tabindex="0" role="button" class="m-1">
+        <div class="avatar me-1">
+            <div class="w-8 rounded-full">
+                <img src="https://img.daisyui.com/images/profile/demo/yellingcat@192.webp" />
+            </div>
+        </div>
+        <span class="font-extrabold text-primary">
+            {{authService.authUser()?.name | titlecase }}
+        </span>
+    </div>
+    <ul tabindex="-1" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-3 shadow-sm gap-3">
+        <li class="hover:text-primary transition-colors" (click)="onProfile()">Perfil</li>
+        <li class="hover:text-primary transition-colors" (click)="logout()">Cerrar Sesión</li>
+    </ul>
+</div>
+}
