@@ -1,0 +1,41 @@
+@if (dialogService.isOpen()) {
+<div class="modal modal-open z-50">
+    <div class="modal-box bg-base-200 shadow-xl" [class.max-w-2xl]="dialogService.config()?.wide">
+    <!-- Header -->
+    <div class="flex items-center gap-3 mb-4">
+      @if (severityIcon()) {
+      <i class="bi {{ severityIcon() }} text-2xl {{ severityColor() }}"></i>
+      }
+      <h3 class="text-lg font-bold">{{ dialogService.config()?.title }}</h3>
+    </div>
+
+    <!-- Message body -->
+    @if (dialogService.config()?.message) {
+    <p class="py-2 text-base-content/70">{{ dialogService.config()?.message }}</p>
+    }
+
+    <!-- Custom template content -->
+    @if (dialogService.config()?.templateRef; as tmpl) {
+    <div class="py-2">
+      <ng-container [ngTemplateOutlet]="tmpl" [ngTemplateOutletContext]="{ $implicit: dialogService.config()?.context }">
+      </ng-container>
+    </div>
+    }
+
+    <!-- Actions -->
+    <div class="modal-action">
+      @if (dialogService.config()?.cancelText) {
+      <button class="btn btn-ghost" (click)="onCancel()">
+        {{ dialogService.config()?.cancelText }}
+      </button>
+      }
+      @if (dialogService.config()?.confirmText) {
+      <button class="btn btn-primary" (click)="onConfirm()">
+        {{ dialogService.config()?.confirmText }}
+      </button>
+      }
+    </div>
+  </div>
+  <div class="modal-backdrop bg-black/50" (click)="onCancel()"></div>
+</div>
+}

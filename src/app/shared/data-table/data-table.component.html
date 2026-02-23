@@ -1,0 +1,64 @@
+<div class="rounded-lg border border-base-300 flex-1 min-h-0 overflow-auto">
+  <table class="table table-zebra w-full">
+    <thead class="sticky top-0 z-10">
+      <tr class="bg-base-300">
+        @for (col of columns(); track col.key) {
+        <th class="text-sm font-semibold text-base-content">{{ col.label }}</th>
+        }
+        @if (showActions()) {
+        <th class="text-sm font-semibold text-base-content text-center w-20">Acciones</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of data(); track $index) {
+      <tr class="hover:bg-base-200/50 transition-colors">
+        @for (col of columns(); track col.key) {
+        <td class="text-sm">
+          @switch (col.type) {
+          @case ('currency') {
+          <span class="font-semibold">{{ getCellValue(row, col.key) | currency : 'USD' : 'symbol' : '1.2-2' }}</span>
+          }
+          @case ('date') {
+          {{ getCellValue(row, col.key) | date : 'dd/MM/yyyy' }}
+          }
+          @case ('badge') {
+          <app-badge
+            [label]="getCellValue(row, col.key)"
+            [color]="col.badgeColor ?? (col.badgeColorKey ? getCellValue(row, col.badgeColorKey) : 'ghost')"
+            [options]="col.badgeOptions ?? []"
+            (optionSelected)="onBadgeOptionSelected(col.key, row, $event)" />
+          }
+          @case ('pill') {
+            @if (getCellValue(row, col.key) && getCellValue(row, col.key) !== '—') {
+            <span class="badge badge-primary badge-sm badge-outline font-semibold">{{ getCellValue(row, col.key) }}</span>
+            } @else {
+            <span class="text-base-content/30">—</span>
+            }
+          }
+          @default {
+          {{ getCellValue(row, col.key) }}
+          }
+          }
+        </td>
+        }
+        @if (showActions()) {
+        <td class="text-center">
+          <app-menu [items]="actions()" (itemClicked)="onActionClicked($event, row)" />
+        </td>
+        }
+      </tr>
+      } @empty {
+      <tr>
+        <td [attr.colspan]="columns().length + (showActions() ? 1 : 0)"
+          class="text-center py-12 text-base-content/40">
+          <div class="flex flex-col items-center gap-2">
+            <i class="bi bi-inbox text-4xl"></i>
+            <span class="text-sm">No hay datos para mostrar</span>
+          </div>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>

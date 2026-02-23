@@ -1,3 +1,136 @@
-<p>
-  summary works!
-</p>
+<div class="flex flex-col gap-4 max-w-6xl mx-auto h-full">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="bg-primary/10 p-2 rounded-lg">
+        <i class="bi bi-bar-chart-line text-primary text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold">Balance General</h1>
+        <p class="text-sm text-base-content/50">Resumen de ingresos y gastos</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- View Mode Selector -->
+      <select class="select select-sm select-bordered w-28"
+        [ngModel]="viewMode()" (ngModelChange)="onViewModeChange($event)">
+        @for (opt of viewModeOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+
+      <!-- Date Navigation -->
+      <div class="join">
+        <button class="btn btn-sm join-item btn-ghost" (click)="prev()">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button class="btn btn-sm join-item btn-ghost no-animation font-semibold min-w-36"
+          (click)="resetToToday()" title="Volver a hoy">
+          {{ navigationLabel() }}
+        </button>
+        <button class="btn btn-sm join-item btn-ghost" (click)="next()">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="card bg-success/10 border border-success/20 shadow-sm">
+      <div class="card-body p-4 flex flex-row items-center gap-3">
+        <div class="bg-success/20 p-2 rounded-lg">
+          <i class="bi bi-arrow-down-circle text-success text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-base-content/50 uppercase tracking-wide">Ingresos</p>
+          <p class="text-xl font-bold text-success">
+            {{ totalIncome() | currency : 'USD' : 'symbol' : '1.2-2' }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-error/10 border border-error/20 shadow-sm">
+      <div class="card-body p-4 flex flex-row items-center gap-3">
+        <div class="bg-error/20 p-2 rounded-lg">
+          <i class="bi bi-arrow-up-circle text-error text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-base-content/50 uppercase tracking-wide">Gastos</p>
+          <p class="text-xl font-bold text-error">
+            {{ totalExpense() | currency : 'USD' : 'symbol' : '1.2-2' }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 border border-base-300 shadow-sm">
+      <div class="card-body p-4 flex flex-row items-center gap-3">
+        <div class="bg-primary/20 p-2 rounded-lg">
+          <i class="bi bi-wallet2 text-primary text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-base-content/50 uppercase tracking-wide">Balance</p>
+          <p class="text-xl font-bold" [ngClass]="balanceColor()">
+            {{ balance() | currency : 'USD' : 'symbol' : '1.2-2' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Bar -->
+  <div class="card bg-base-200 shadow-sm">
+    <div class="card-body p-3">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <label class="input input-sm input-bordered flex items-center gap-2 flex-1">
+          <i class="bi bi-search text-base-content/40"></i>
+          <input type="text" class="grow" placeholder="Buscar por descripción, categoría..."
+            [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)" />
+        </label>
+
+        <select class="select select-sm select-bordered w-full sm:w-40"
+          [ngModel]="selectedType() ?? ''" (ngModelChange)="onTypeChange($event)">
+          <option value="">Todos los tipos</option>
+          <option value="income">Ingresos</option>
+          <option value="expense">Gastos</option>
+        </select>
+
+        <button class="btn btn-sm btn-ghost gap-1" (click)="toggleSort()"
+          [class.btn-active]="sortDirection() === 'desc'">
+          <i class="bi" [class.bi-sort-down]="sortDirection() === 'desc'"
+            [class.bi-sort-up]="sortDirection() === 'asc'"></i>
+          Fecha
+        </button>
+
+        <button class="btn btn-sm btn-ghost gap-1" (click)="loadData()" title="Refrescar">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results count -->
+  <div class="flex items-center justify-between px-2">
+    <span class="text-sm text-base-content/50">
+      {{ tableData().length }} movimiento{{ tableData().length !== 1 ? 's' : '' }}
+    </span>
+  </div>
+
+  <!-- Table -->
+  @if (isLoading()) {
+  <div class="flex justify-center py-16">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+  } @else {
+  <div class="flex-1 min-h-0 flex flex-col">
+    <app-data-table
+      [columns]="columnsWithOptions()"
+      [data]="tableData()"
+      (badgeOptionClicked)="onBadgeOptionClicked($event)" />
+  </div>
+  }
+</div>

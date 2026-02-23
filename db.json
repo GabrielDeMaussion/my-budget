@@ -1,0 +1,488 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "admin@gmail.com",
+      "password": "admin",
+      "name": "admin",
+      "lastName": "super",
+      "theme": "dark"
+    }
+  ],
+  "paymentTypes": [
+    {
+      "id": 1,
+      "value": "Ingreso"
+    },
+    {
+      "id": 2,
+      "value": "Gasto"
+    }
+  ],
+  "paymentCategories": [
+    {
+      "id": 1,
+      "value": "Salario"
+    },
+    {
+      "id": 2,
+      "value": "Freelance"
+    },
+    {
+      "id": 3,
+      "value": "Alimentación"
+    },
+    {
+      "id": 4,
+      "value": "Transporte"
+    },
+    {
+      "id": 5,
+      "value": "Entretenimiento"
+    },
+    {
+      "id": 6,
+      "value": "Servicios"
+    },
+    {
+      "id": 7,
+      "value": "Salud"
+    },
+    {
+      "id": 8,
+      "value": "Educación"
+    },
+    {
+      "id": 9,
+      "value": "Vivienda"
+    },
+    {
+      "id": 10,
+      "value": "Otros"
+    }
+  ],
+  "payments": [
+    {
+      "id": "621e",
+      "totalAmount": 111,
+      "paymentTypeId": 1,
+      "paymentCategoryId": 2,
+      "startDate": "2026-02-23",
+      "frequency": null,
+      "paymentDay": null,
+      "installments": null,
+      "state": "ACTIVE",
+      "comments": "",
+      "userId": 1,
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "7900",
+      "totalAmount": 1000000,
+      "paymentTypeId": 1,
+      "paymentCategoryId": 1,
+      "startDate": "2026-01-01",
+      "frequency": "MONTHLY",
+      "paymentDay": 1,
+      "installments": null,
+      "state": "ACTIVE",
+      "comments": "",
+      "userId": 1,
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "24f6",
+      "totalAmount": 222,
+      "paymentTypeId": 2,
+      "paymentCategoryId": 10,
+      "startDate": "2026-02-23",
+      "frequency": null,
+      "paymentDay": null,
+      "installments": null,
+      "state": "ACTIVE",
+      "comments": "",
+      "userId": 1,
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "31de",
+      "totalAmount": 333,
+      "paymentTypeId": 2,
+      "paymentCategoryId": 10,
+      "startDate": "2026-02-24",
+      "frequency": null,
+      "paymentDay": null,
+      "installments": null,
+      "state": "ACTIVE",
+      "comments": "",
+      "userId": 1,
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "89e9",
+      "totalAmount": 444,
+      "paymentTypeId": 2,
+      "paymentCategoryId": 10,
+      "startDate": "2026-01-01",
+      "frequency": "MONTHLY",
+      "paymentDay": 25,
+      "installments": 12,
+      "state": "ACTIVE",
+      "comments": "",
+      "userId": 1,
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "0e7f",
+      "totalAmount": 10000,
+      "paymentTypeId": 2,
+      "paymentCategoryId": 10,
+      "startDate": "2026-02-01",
+      "frequency": "MONTHLY",
+      "paymentDay": 1,
+      "installments": 10,
+      "state": "ACTIVE",
+      "comments": "",
+      "userId": 1,
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    }
+  ],
+  "paymentInstances": [
+    {
+      "id": "1ddd",
+      "paymentId": "621e",
+      "amount": 111,
+      "paymentDate": "2026-02-23",
+      "installmentNumber": 1,
+      "state": "PAID",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "aa01",
+      "paymentId": 7900,
+      "amount": 1000000,
+      "paymentDate": "2026-01-01",
+      "installmentNumber": 1,
+      "state": "PAID",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "aa02",
+      "paymentId": 7900,
+      "amount": 1000000,
+      "paymentDate": "2026-02-01",
+      "installmentNumber": 2,
+      "state": "PAID",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "314d",
+      "paymentId": "24f6",
+      "amount": 222,
+      "paymentDate": "2026-02-23",
+      "installmentNumber": 1,
+      "state": "PAID",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "1408",
+      "paymentId": "31de",
+      "amount": 333,
+      "paymentDate": "2026-02-24",
+      "installmentNumber": 1,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "cc01",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-01-25",
+      "installmentNumber": 1,
+      "state": "PAID",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "cc02",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-02-25",
+      "installmentNumber": 2,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "cc03",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-03-25",
+      "installmentNumber": 3,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "cc04",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-04-25",
+      "installmentNumber": 4,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "cc05",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-05-25",
+      "installmentNumber": 5,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "cc06",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-06-25",
+      "installmentNumber": 6,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "50ce",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-07-25",
+      "installmentNumber": 7,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "d9cf",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-08-25",
+      "installmentNumber": 8,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "f2ed",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-09-25",
+      "installmentNumber": 9,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "67ad",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-10-25",
+      "installmentNumber": 10,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "81d8",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-11-25",
+      "installmentNumber": 11,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "61d0",
+      "paymentId": "89e9",
+      "amount": 37,
+      "paymentDate": "2026-12-25",
+      "installmentNumber": 12,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "79b8",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-02-01",
+      "installmentNumber": 1,
+      "state": "PAID",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "5cc0",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-03-01",
+      "installmentNumber": 2,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "2f2f",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-04-01",
+      "installmentNumber": 3,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "a7c7",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-05-01",
+      "installmentNumber": 4,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "f0f9",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-06-01",
+      "installmentNumber": 5,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "2550",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-07-01",
+      "installmentNumber": 6,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "be36",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-08-01",
+      "installmentNumber": 7,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "a826",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-09-01",
+      "installmentNumber": 8,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "d535",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-10-01",
+      "installmentNumber": 9,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    },
+    {
+      "id": "58a4",
+      "paymentId": "0e7f",
+      "amount": 1000,
+      "paymentDate": "2026-11-01",
+      "installmentNumber": 10,
+      "state": "PENDING",
+      "comments": "",
+      "createdDate": "2026-02-23",
+      "updatedDate": "2026-02-23",
+      "isActive": true
+    }
+  ]
+}

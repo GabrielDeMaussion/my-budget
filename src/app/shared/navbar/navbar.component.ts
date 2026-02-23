@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { SessionButtonComponent } from '../session-button/session-button.component';
+import { SessionButtonComponent } from '../../components/session-button/session-button.component';
 import { Link } from '../../interfaces/link.interface';
 import { RouterLink, RouterLinkActive } from "@angular/router";
 

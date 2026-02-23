@@ -1,0 +1,151 @@
+<div class="flex flex-col gap-4">
+  <!-- Sección: Datos del pago -->
+  <h4 class="font-semibold text-sm text-base-content/60 uppercase tracking-wide">
+    <i class="bi bi-credit-card me-1"></i> Datos del pago
+  </h4>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <!-- Monto total -->
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Monto total</span></label>
+      <input type="number" min="0" step="0.01"
+        class="input input-sm input-bordered w-full"
+        [(ngModel)]="form.totalAmount"
+        placeholder="0.00" />
+    </div>
+
+    <!-- Categoría -->
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Categoría</span></label>
+      <select class="select select-sm select-bordered w-full"
+        [(ngModel)]="form.paymentCategoryId">
+        @for (cat of categories(); track cat.id) {
+        <option [ngValue]="cat.id">{{ cat.value }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Frecuencia -->
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Frecuencia</span></label>
+      <select class="select select-sm select-bordered w-full"
+        [(ngModel)]="form.frequency" (ngModelChange)="onFrequencyChange()">
+        @for (freq of frequencyOptions; track freq.value) {
+        <option [ngValue]="freq.value">{{ freq.label }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Descripción -->
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Descripción (opcional)</span></label>
+      <input type="text" class="input input-sm input-bordered w-full"
+        [(ngModel)]="form.comments"
+        placeholder="Ej: Salario mensual" />
+    </div>
+
+    <!-- ═══ Campos para pago ÚNICO ═══ -->
+    @if (isOnce) {
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Fecha del pago</span></label>
+      <input type="date" class="input input-sm input-bordered w-full"
+        [(ngModel)]="form.startDate" />
+    </div>
+    }
+
+    <!-- ═══ Campos para pago RECURRENTE ═══ -->
+    @if (isRecurring) {
+
+    <!-- Día de cobro: mensual → selector 1-28 -->
+    @if (isMonthly) {
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">{{ paymentDayLabel }}</span></label>
+      <select class="select select-sm select-bordered w-full"
+        [(ngModel)]="form.paymentDay">
+        @for (d of daysOfMonth; track d) {
+        <option [ngValue]="d">{{ d }}</option>
+        }
+      </select>
+    </div>
+    }
+
+    <!-- Día de cobro: semanal/quincenal → selector día de semana -->
+    @if (isWeeklyOrBiweekly) {
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">{{ paymentDayLabel }}</span></label>
+      <select class="select select-sm select-bordered w-full"
+        [(ngModel)]="form.paymentDay">
+        @for (d of daysOfWeek; track d.value) {
+        <option [ngValue]="d.value">{{ d.label }}</option>
+        }
+      </select>
+    </div>
+    }
+
+    <!-- Inicio: mensual → input type="month" -->
+    @if (isMonthly) {
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">{{ startLabel }}</span></label>
+      <input type="month" class="input input-sm input-bordered w-full"
+        [(ngModel)]="form.startMonth" />
+    </div>
+    }
+
+    <!-- Inicio: diario/semanal/quincenal/anual → input type="date" -->
+    @if (!isMonthly) {
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">{{ startLabel }}</span></label>
+      <input type="date" class="input input-sm input-bordered w-full"
+        [(ngModel)]="form.startDate" />
+    </div>
+    }
+
+    <!-- Plazo -->
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text text-xs">Plazo</span>
+      </label>
+      <label class="label cursor-pointer justify-start gap-3">
+        <input type="checkbox" class="toggle toggle-sm toggle-primary"
+          [(ngModel)]="form.isIndefinite" />
+        <span class="label-text text-xs">{{ form.isIndefinite ? 'Indefinido' : 'Cantidad de cuotas' }}</span>
+      </label>
+    </div>
+
+    <!-- Cantidad de cuotas (solo finito) -->
+    @if (!form.isIndefinite) {
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Cantidad de cuotas</span></label>
+      <input type="number" min="1" step="1"
+        class="input input-sm input-bordered w-full"
+        [(ngModel)]="form.installments"
+        placeholder="1" />
+    </div>
+    }
+
+    }
+  </div>
+
+  <!-- Info: Monto calculado por cuota -->
+  @if (isRecurring && !form.isIndefinite && suggestedInstallmentAmount !== null) {
+  <div class="flex items-center gap-2 text-xs text-base-content/50 bg-primary/5 rounded-lg p-2">
+    <i class="bi bi-calculator"></i>
+    <span>Monto por cuota: <strong class="text-primary">{{ suggestedInstallmentAmount | number : '1.2-2' }}</strong></span>
+  </div>
+  }
+
+  @if (isRecurring && form.isIndefinite) {
+  <div class="flex items-center gap-2 text-xs text-base-content/50 bg-info/5 rounded-lg p-2">
+    <i class="bi bi-info-circle"></i>
+    <span>El monto total se usará como monto por período.</span>
+  </div>
+  }
+
+  <!-- Botones -->
+  <div class="flex justify-end gap-2 mt-2">
+    <button class="btn btn-ghost btn-sm" (click)="onCancel()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" (click)="onSubmit()" [disabled]="!isValid()">
+      <i class="bi bi-check-lg me-1"></i> Guardar
+    </button>
+  </div>
+</div>

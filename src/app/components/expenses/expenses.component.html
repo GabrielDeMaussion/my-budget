@@ -1,3 +1,133 @@
-<p>
-  expenses works!
-</p>
+<div class="flex flex-col gap-4 max-w-6xl mx-auto h-full">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="bg-error/10 p-2 rounded-lg">
+        <i class="bi bi-arrow-up-circle text-error text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold">Gastos</h1>
+        <p class="text-sm text-base-content/50">Gestiona tus gastos</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- View Mode Selector -->
+      <select class="select select-sm select-bordered w-28"
+        [ngModel]="viewMode()" (ngModelChange)="onViewModeChange($event)">
+        @for (opt of viewModeOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+
+      <!-- Date Navigation -->
+      <div class="join">
+        <button class="btn btn-sm join-item btn-ghost" (click)="prev()">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button class="btn btn-sm join-item btn-ghost no-animation font-semibold min-w-36"
+          (click)="resetToToday()" title="Volver a hoy">
+          {{ navigationLabel() }}
+        </button>
+        <button class="btn btn-sm join-item btn-ghost" (click)="next()">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Add Button -->
+      <button class="btn btn-error btn-sm gap-1" (click)="onAdd()">
+        <i class="bi bi-plus-lg"></i>
+        Agregar
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Bar -->
+  <div class="card bg-base-200 shadow-sm">
+    <div class="card-body p-3">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <label class="input input-sm input-bordered flex items-center gap-2 flex-1">
+          <i class="bi bi-search text-base-content/40"></i>
+          <input type="text" class="grow" placeholder="Buscar por descripción, categoría..."
+            [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)" />
+        </label>
+
+        <select class="select select-sm select-bordered w-full sm:w-44"
+          [ngModel]="selectedCategoryId() ?? ''" (ngModelChange)="onCategoryChange($event)">
+          <option value="">Todas las categorías</option>
+          @for (cat of expenseCategories(); track cat.id) {
+          <option [value]="cat.id">{{ cat.value }}</option>
+          }
+        </select>
+
+        <select class="select select-sm select-bordered w-full sm:w-36"
+          [ngModel]="selectedState() ?? ''" (ngModelChange)="onStateChange($event)">
+          <option value="">Todos los estados</option>
+          <option value="PAID">Pagado</option>
+          <option value="PENDING">Pendiente</option>
+          <option value="CANCELLED">Cancelado</option>
+          <option value="OVERDUE">Vencido</option>
+        </select>
+
+        <button class="btn btn-sm btn-ghost gap-1" (click)="toggleSort()"
+          [class.btn-active]="sortDirection() === 'desc'">
+          <i class="bi" [class.bi-sort-down]="sortDirection() === 'desc'"
+            [class.bi-sort-up]="sortDirection() === 'asc'"></i>
+          Fecha
+        </button>
+
+        <!-- Refresh Button -->
+        <button class="btn btn-sm btn-ghost gap-1" (click)="loadData()" title="Refrescar">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="flex items-center justify-between px-2">
+    <span class="text-sm text-base-content/50">
+      {{ tableData().length }} resultado{{ tableData().length !== 1 ? 's' : '' }}
+    </span>
+    <span class="text-sm font-semibold text-error">
+      Total: {{ totalFiltered() | currency : 'USD' : 'symbol' : '1.2-2' }}
+    </span>
+  </div>
+
+  <!-- Table -->
+  @if (isLoading()) {
+  <div class="flex justify-center py-16">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+  } @else {
+  <div class="flex-1 min-h-0 flex flex-col">
+    <app-data-table
+      [columns]="columnsWithOptions()"
+      [data]="tableData()"
+      [showActions]="true"
+      [actions]="tableActions"
+      (actionClicked)="onTableAction($event)"
+      (badgeOptionClicked)="onBadgeOptionClicked($event)"
+    />
+  </div>
+  }
+</div>
+
+<!-- Form template for dialog -->
+<ng-template #expenseFormTemplate>
+  <app-payment-form
+    [paymentTypeId]="EXPENSE_TYPE_ID"
+    (formSubmit)="onFormSubmit($event)"
+    (formCancel)="onFormCancel()" />
+</ng-template>
+
+<!-- Detail template for dialog -->
+<ng-template #detailTemplate>
+  @if (selectedPayment()) {
+  <app-payment-detail
+    [payment]="selectedPayment()!"
+    [instances]="selectedInstances()"
+    [categoryName]="selectedCategoryName()" />
+  }
+</ng-template>

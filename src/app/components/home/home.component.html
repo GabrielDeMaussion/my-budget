@@ -1,3 +1,208 @@
-<p>
-  home works!
-</p>
+<div class="flex flex-col gap-6 max-w-6xl mx-auto">
+
+  <!-- Hero / Welcome -->
+  <div class="hero bg-linear-to-r from-primary/20 to-secondary/20 rounded-2xl">
+    <div class="hero-content text-center py-10">
+      <div>
+        <h1 class="text-4xl font-extrabold mb-2">
+          <i class="bi bi-graph-up-arrow text-primary me-2"></i>
+          My Budget
+        </h1>
+        <p class="text-base-content/60 text-lg">
+          Resumen financiero de
+          <span class="font-semibold text-primary capitalize">{{ currentMonth() }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  @if (isLoading()) {
+  <div class="flex justify-center py-12">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+  } @else {
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Income Card -->
+    <div class="card bg-base-200 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+      (click)="navigateTo('/incomes')">
+      <div class="card-body">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-base-content/50 uppercase tracking-wide">Ingresos</p>
+            <p class="text-3xl font-bold text-success">{{ totalIncome() | currency : 'USD' : 'symbol' : '1.2-2' }}</p>
+          </div>
+          <div class="bg-success/10 p-3 rounded-full">
+            <i class="bi bi-arrow-down-circle text-success text-2xl"></i>
+          </div>
+        </div>
+        <p class="text-xs text-base-content/40 mt-2">
+          <i class="bi bi-receipt me-1"></i>
+          {{ incomeCount() }} transacciones
+        </p>
+      </div>
+    </div>
+
+    <!-- Expenses Card -->
+    <div class="card bg-base-200 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+      (click)="navigateTo('/expenses')">
+      <div class="card-body">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-base-content/50 uppercase tracking-wide">Gastos</p>
+            <p class="text-3xl font-bold text-error">{{ totalExpenses() | currency : 'USD' : 'symbol' : '1.2-2' }}</p>
+          </div>
+          <div class="bg-error/10 p-3 rounded-full">
+            <i class="bi bi-arrow-up-circle text-error text-2xl"></i>
+          </div>
+        </div>
+        <p class="text-xs text-base-content/40 mt-2">
+          <i class="bi bi-receipt me-1"></i>
+          {{ expenseCount() }} transacciones
+        </p>
+      </div>
+    </div>
+
+    <!-- Balance Card -->
+    <div class="card bg-base-200 shadow-md hover:shadow-lg transition-shadow">
+      <div class="card-body">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-base-content/50 uppercase tracking-wide">Balance</p>
+            <p class="text-3xl font-bold" [class.text-success]="balance() >= 0"
+              [class.text-error]="balance() < 0">
+              {{ balance() | currency : 'USD' : 'symbol' : '1.2-2' }}
+            </p>
+          </div>
+          <div class="p-3 rounded-full" [class.bg-success/10]="balance() >= 0"
+            [class.bg-error/10]="balance() < 0">
+            @if (balance() >= 0) {
+            <i class="bi bi-emoji-smile text-success text-2xl"></i>
+            } @else {
+            <i class="bi bi-emoji-frown text-error text-2xl"></i>
+            }
+          </div>
+        </div>
+        <p class="text-xs text-base-content/40 mt-2">
+          @if (balance() >= 0) {
+          <i class="bi bi-check-circle text-success me-1"></i> Balance positivo
+          } @else {
+          <i class="bi bi-exclamation-circle text-error me-1"></i> Balance negativo
+          }
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity & Quick Actions -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Recent Activity -->
+    <div class="card bg-base-200 shadow-md lg:col-span-2">
+      <div class="card-body">
+        <h2 class="card-title text-lg">
+          <i class="bi bi-clock-history text-primary me-1"></i>
+          Actividad reciente
+        </h2>
+        <div class="divider my-1"></div>
+        <div class="flex flex-col gap-2">
+          @for (item of recentActivity(); track item.id) {
+          <div class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-base-300/50 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                [class]="item.isIncome ? 'bg-success/10' : 'bg-error/10'">
+                <i class="bi text-lg" [class]="item.isIncome ? 'bi-arrow-down-left text-success' : 'bi-arrow-up-right text-error'"></i>
+              </div>
+              <div>
+                <p class="font-medium text-sm">{{ item.comments }}</p>
+                <p class="text-xs text-base-content/40">{{ item.categoryName }} · {{ item.paymentDate | date : 'dd MMM yyyy' }}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="font-bold text-sm" [class]="item.isIncome ? 'text-success' : 'text-error'">
+                {{ item.isIncome ? '+' : '-' }}{{ item.amount | currency : 'USD' : 'symbol' : '1.2-2' }}
+              </p>
+              <span class="badge badge-xs"
+                [class.badge-success]="item.state === 'PAID'"
+                [class.badge-warning]="item.state === 'PENDING'"
+                [class.badge-error]="item.state === 'CANCELLED'">
+                {{ item.state }}
+              </span>
+            </div>
+          </div>
+          } @empty {
+          <div class="text-center py-8 text-base-content/40">
+            <i class="bi bi-inbox text-3xl block mb-2"></i>
+            <span class="text-sm">Sin actividad este mes</span>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions & Summary -->
+    <div class="flex flex-col gap-4">
+      <!-- Quick Actions -->
+      <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title text-lg">
+            <i class="bi bi-lightning text-primary me-1"></i>
+            Acciones rápidas
+          </h2>
+          <div class="divider my-1"></div>
+          <div class="flex flex-col gap-2">
+            <button class="btn btn-success btn-sm justify-start gap-2" (click)="navigateTo('/incomes')">
+              <i class="bi bi-plus-circle"></i>
+              Registrar ingreso
+            </button>
+            <button class="btn btn-error btn-sm justify-start gap-2" (click)="navigateTo('/expenses')">
+              <i class="bi bi-dash-circle"></i>
+              Registrar gasto
+            </button>
+            <button class="btn btn-primary btn-sm justify-start gap-2" (click)="navigateTo('/summary')">
+              <i class="bi bi-bar-chart"></i>
+              Ver balance general
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Breakdown -->
+      <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title text-lg">
+            <i class="bi bi-pie-chart text-primary me-1"></i>
+            Distribución
+          </h2>
+          <div class="divider my-1"></div>
+          @if (totalIncome() + totalExpenses() > 0) {
+          <div class="flex flex-col gap-3">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-base-content/60">Ingresos</span>
+                <span class="text-success font-medium">{{ (totalIncome() / (totalIncome() + totalExpenses()) * 100) | number : '1.0-0' }}%</span>
+              </div>
+              <progress class="progress progress-success w-full"
+                [value]="totalIncome()"
+                [max]="totalIncome() + totalExpenses()">
+              </progress>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-base-content/60">Gastos</span>
+                <span class="text-error font-medium">{{ (totalExpenses() / (totalIncome() + totalExpenses()) * 100) | number : '1.0-0' }}%</span>
+              </div>
+              <progress class="progress progress-error w-full"
+                [value]="totalExpenses()"
+                [max]="totalIncome() + totalExpenses()">
+              </progress>
+            </div>
+          </div>
+          } @else {
+          <p class="text-center text-base-content/40 text-sm py-4">Sin datos este mes</p>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+</div>

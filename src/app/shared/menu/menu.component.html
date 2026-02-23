@@ -1,0 +1,30 @@
+<div class="dropdown dropdown-end rounded-md px-1.5 hover:bg-base-100 cursor-pointer transition-colors">
+  <div tabindex="0" role="button" class="m-1 flex items-center gap-1">
+    <ng-content select="[menuTrigger]">
+      <!-- Fallback: usa icon y menuTitle si no se proyecta contenido -->
+      <span class="flex items-center gap-1">
+        @if (icon()) {
+        <i class="bi bi-{{ icon() }} text-lg"></i>
+        }
+        @if (menuTitle()) {
+        <span class="text-sm">{{ menuTitle() }}</span>
+        }
+        @if (!icon() && !menuTitle()) {
+        <i class="bi bi-three-dots-vertical text-lg"></i>
+        }
+      </span>
+    </ng-content>
+  </div>
+  <ul tabindex="-1" class="dropdown-content menu bg-base-100 rounded-box z-50 w-52 p-3 shadow-sm gap-1">
+    @for (item of items(); track item.id) {
+    <li class="hover:text-primary transition-colors rounded-md" (click)="onItemClicked(item)">
+      <span class="flex items-center gap-2">
+        @if (item.icon) {
+        <i class="bi bi-{{ item.icon }}"></i>
+        }
+        {{ item.label }}
+      </span>
+    </li>
+    }
+  </ul>
+</div>

@@ -1,0 +1,109 @@
+<div class="flex flex-col gap-6 max-w-4xl mx-auto">
+
+  <!-- Header -->
+  <div class="flex items-center gap-3">
+    <div class="bg-primary/10 p-2 rounded-lg">
+      <i class="bi bi-gear text-primary text-2xl"></i>
+    </div>
+    <div>
+      <h1 class="text-2xl font-bold">Configuración</h1>
+      <p class="text-sm text-base-content/50">Personaliza tu experiencia</p>
+    </div>
+  </div>
+
+  <!-- Theme Section -->
+  <div class="card bg-base-200 shadow-sm">
+    <div class="card-body">
+      <h2 class="card-title text-lg">
+        <i class="bi bi-palette text-primary me-1"></i>
+        Tema de la aplicación
+      </h2>
+      <div class="divider my-1"></div>
+
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+        @for (theme of themes; track theme) {
+        <button class="btn btn-sm capitalize"
+          [class.btn-primary]="currentTheme() === theme"
+          [class.btn-ghost]="currentTheme() !== theme"
+          (click)="onThemeChange(theme)"
+          [attr.data-theme]="theme">
+          <span class="flex items-center gap-1">
+            @if (currentTheme() === theme) {
+            <i class="bi bi-check-circle-fill text-xs"></i>
+            }
+            {{ theme }}
+          </span>
+        </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories Section -->
+  <div class="card bg-base-200 shadow-sm">
+    <div class="card-body">
+      <h2 class="card-title text-lg">
+        <i class="bi bi-tags text-primary me-1"></i>
+        Categorías de pago
+      </h2>
+      <div class="divider my-1"></div>
+
+      <!-- Add New Category -->
+      <div class="flex gap-2 mb-4">
+        <input type="text" class="input input-sm input-bordered flex-1"
+          [(ngModel)]="newCategoryName"
+          placeholder="Nueva categoría..."
+          (keydown.enter)="addCategory()" />
+        <button class="btn btn-primary btn-sm gap-1" (click)="addCategory()"
+          [disabled]="!newCategoryName.trim()">
+          <i class="bi bi-plus-lg"></i>
+          Agregar
+        </button>
+      </div>
+
+      <!-- Categories List -->
+      @if (isLoading()) {
+      <div class="flex justify-center py-8">
+        <span class="loading loading-spinner loading-md text-primary"></span>
+      </div>
+      } @else {
+      <div class="flex flex-col gap-1">
+        @for (cat of categories(); track cat.id) {
+        <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-300/50 transition-colors group">
+          @if (editingCategoryId() === cat.id) {
+          <!-- Edit Mode -->
+          <input type="text" class="input input-sm input-bordered flex-1"
+            [(ngModel)]="editingCategoryValue"
+            (keydown.enter)="saveEdit(cat)"
+            (keydown.escape)="cancelEdit()" />
+          <button class="btn btn-success btn-xs btn-ghost" (click)="saveEdit(cat)" title="Guardar">
+            <i class="bi bi-check-lg"></i>
+          </button>
+          <button class="btn btn-ghost btn-xs" (click)="cancelEdit()" title="Cancelar">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          } @else {
+          <!-- View Mode -->
+          <span class="badge badge-ghost badge-sm">{{ cat.id }}</span>
+          <span class="flex-1 text-sm">{{ cat.value }}</span>
+          <button class="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            (click)="startEdit(cat)" title="Editar">
+            <i class="bi bi-pencil text-xs"></i>
+          </button>
+          <button class="btn btn-ghost btn-xs text-error opacity-0 group-hover:opacity-100 transition-opacity"
+            (click)="deleteCategory(cat)" title="Eliminar">
+            <i class="bi bi-trash text-xs"></i>
+          </button>
+          }
+        </div>
+        } @empty {
+        <div class="text-center py-8 text-base-content/40">
+          <i class="bi bi-inbox text-3xl block mb-2"></i>
+          <span class="text-sm">No hay categorías</span>
+        </div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+</div>

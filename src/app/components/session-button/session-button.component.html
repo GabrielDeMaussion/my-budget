@@ -1,21 +1,51 @@
-@if(!isLoggedIn()) {
-<button class="btn btn-primary" (click)="forceLogin()">Iniciar Sesión</button>
-}
-@else {
-<div class="dropdown dropdown-end rounded-md px-1.5 hover:bg-base-100 cursor-pointer transition-colors">
-    <div tabindex="0" role="button" class="m-1">
-        <div class="avatar me-1">
-            <div class="w-8 rounded-full">
-                <img src="https://img.daisyui.com/images/profile/demo/yellingcat@192.webp" />
-            </div>
-        </div>
-        <span class="font-extrabold text-primary">
-            {{authService.authUser()?.name | titlecase }}
-        </span>
+@if (!isLoggedIn()) {
+<button class="btn btn-primary" (click)="openLoginDialog()">Iniciar Sesión</button>
+} @else {
+<app-menu [items]="menuItems" (itemClicked)="onMenuAction($event)">
+  <div menuTrigger class="flex items-center gap-2">
+    <div class="avatar">
+      <div class="w-8 rounded-full">
+        <img src="https://img.daisyui.com/images/profile/demo/yellingcat@192.webp" />
+      </div>
     </div>
-    <ul tabindex="-1" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-3 shadow-sm gap-3">
-        <li class="hover:text-primary transition-colors" (click)="onProfile()">Perfil</li>
-        <li class="hover:text-primary transition-colors" (click)="logout()">Cerrar Sesión</li>
-    </ul>
-</div>
+    <span class="font-extrabold text-primary">
+      {{ authService.authUser()?.name | titlecase }}
+    </span>
+  </div>
+</app-menu>
 }
+
+<!-- Login Form Template -->
+<ng-template #loginFormTemplate>
+  <div class="flex flex-col gap-4">
+    @if (loginError()) {
+    <div class="alert alert-error text-sm py-2">
+      <i class="bi bi-exclamation-circle"></i>
+      <span>Credenciales incorrectas. Intenta de nuevo.</span>
+    </div>
+    }
+
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Email</span></label>
+      <input type="email" class="input input-sm input-bordered w-full"
+        [(ngModel)]="loginForm.email"
+        placeholder="admin@gmail.com" />
+    </div>
+
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Contraseña</span></label>
+      <input type="password" class="input input-sm input-bordered w-full"
+        [(ngModel)]="loginForm.password"
+        placeholder="••••••••"
+        (keydown.enter)="onLoginSubmit()" />
+    </div>
+
+    <div class="flex justify-end gap-2 mt-2">
+      <button class="btn btn-ghost btn-sm" (click)="onLoginCancel()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" (click)="onLoginSubmit()"
+        [disabled]="!loginForm.email || !loginForm.password">
+        <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+      </button>
+    </div>
+  </div>
+</ng-template>

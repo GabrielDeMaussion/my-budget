@@ -1,0 +1,89 @@
+<div class="flex flex-col gap-4">
+
+  <!-- Encabezado tipo de plan -->
+  <div class="flex items-center gap-2">
+    @if (isOnce()) {
+    <i class="bi bi-receipt text-lg text-base-content/50"></i>
+    <span class="text-sm font-semibold text-base-content/60 uppercase tracking-wide">Plan de pago único</span>
+    } @else {
+    <i class="bi bi-arrow-repeat text-lg text-base-content/50"></i>
+    <span class="text-sm font-semibold text-base-content/60 uppercase tracking-wide">Plan de pago recurrente</span>
+    @if (isIndefinite()) {
+    <span class="badge badge-sm badge-outline badge-info">Indefinido</span>
+    }
+    }
+  </div>
+
+  <!-- Info del plan -->
+  <div class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+    @if (payment().comments) {
+    <div class="text-base-content/50">Descripción</div>
+    <div>{{ payment().comments }}</div>
+    }
+
+    <div class="text-base-content/50">Categoría</div>
+    <div>{{ categoryName() }}</div>
+
+    <div class="text-base-content/50">Monto</div>
+    <div class="font-semibold">{{ payment().totalAmount | currency : 'USD' : 'symbol' : '1.2-2' }}</div>
+
+    <div class="text-base-content/50">Frecuencia</div>
+    <div>
+      <app-badge [label]="frequencyLabel()" [color]="isOnce() ? 'ghost' : 'info'" />
+    </div>
+
+    @if (isOnce()) {
+    <div class="text-base-content/50">Fecha</div>
+    <div>{{ payment().startDate | date : 'dd/MM/yyyy' }}</div>
+    } @else {
+    <div class="text-base-content/50">Fecha inicio</div>
+    <div>{{ payment().startDate | date : 'dd/MM/yyyy' }}</div>
+
+    <div class="text-base-content/50">Cuotas</div>
+    <div>{{ payment().installments ? payment().installments : 'Indefinido' }}</div>
+
+    @if (payment().paymentDay) {
+    <div class="text-base-content/50">Día de cobro</div>
+    <div>{{ payment().paymentDay }}</div>
+    }
+    }
+
+    <div class="text-base-content/50">Estado del plan</div>
+    <div>
+      <app-badge [label]="planStateLabel()" [color]="planStateColor()" />
+    </div>
+  </div>
+
+  <!-- Para pagos únicos: resumen compacto de la instancia -->
+  @if (isOnce() && singleInstance(); as inst) {
+  <div class="divider my-0"></div>
+  <div class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+    <div class="text-base-content/50">Fecha de pago</div>
+    <div>{{ inst.paymentDate | date : 'dd/MM/yyyy' }}</div>
+
+    <div class="text-base-content/50">Monto pagado</div>
+    <div class="font-semibold">{{ inst.amount | currency : 'USD' : 'symbol' : '1.2-2' }}</div>
+
+    <div class="text-base-content/50">Estado</div>
+    <div>
+      <app-badge [label]="inst.stateLabel" [color]="inst.stateColor" />
+    </div>
+
+    @if (inst.comments) {
+    <div class="text-base-content/50">Comentario</div>
+    <div>{{ inst.comments }}</div>
+    }
+  </div>
+  }
+
+  <!-- Para pagos recurrentes: tabla de cuotas -->
+  @if (!isOnce()) {
+  <div class="divider my-0"></div>
+
+  <h4 class="font-semibold text-sm text-base-content/60 uppercase tracking-wide">
+    <i class="bi bi-list-ol me-1"></i> Cuotas ({{ enrichedInstances().length }})
+  </h4>
+
+  <app-data-table [columns]="instanceColumns" [data]="enrichedInstances()" />
+  }
+</div>
