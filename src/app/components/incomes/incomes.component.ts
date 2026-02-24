@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin, switchMap, of, from, concatMap, toArray } from 'rxjs';
+import { forkJoin, switchMap, of, from, concatMap, toArray, EMPTY } from 'rxjs';
 
 import { DialogService } from '../../services/dialog.service';
 import { AuthService } from '../../services/auth.service';
@@ -13,6 +13,7 @@ import { MenuItem } from '../../shared/menu/menu.component';
 import { BadgeOption } from '../../shared/badge/badge.component';
 import { PaymentFormComponent, PaymentFormResult } from '../payment-form/payment-form.component';
 import { PaymentDetailComponent } from '../payment-detail/payment-detail.component';
+import { InstanceEditFormComponent, InstanceEditResult } from '../instance-edit-form/instance-edit-form.component';
 import {
   PaymentInstanceState,
   getInstanceStateLabel,
@@ -28,11 +29,11 @@ import {
   navigateDate,
 } from '../../utils/date-navigation.util';
 import { PaymentService } from '../../services/payment.service';
-import { generateFiniteInstanceDates, generateIndefiniteInstanceDates } from '../../utils/installment.util';
+import { generateFiniteInstanceDates, generateIndefiniteInstanceDatesFor5Years } from '../../utils/installment.util';
 
 @Component({
   selector: 'app-incomes',
-  imports: [CommonModule, FormsModule, DataTableComponent, PaymentFormComponent, PaymentDetailComponent],
+  imports: [CommonModule, FormsModule, DataTableComponent, PaymentFormComponent, PaymentDetailComponent, InstanceEditFormComponent],
   templateUrl: './incomes.component.html',
   styleUrls: ['./incomes.component.css'],
 })
@@ -45,6 +46,7 @@ export class IncomesComponent implements OnInit {
   // --------------- ViewChild --------------- //
   @ViewChild('incomeFormTemplate') incomeFormTemplate!: TemplateRef<any>;
   @ViewChild('detailTemplate') detailTemplate!: TemplateRef<any>;
+  @ViewChild('editFormTemplate') editFormTemplate!: TemplateRef<any>;
 
   // --------------- Constants --------------- //
   readonly INCOME_TYPE_ID = 1;
@@ -55,13 +57,13 @@ export class IncomesComponent implements OnInit {
   );
 
   readonly columns: TableColumn[] = [
-    { key: 'paymentDate', label: 'Fecha', type: 'date' },
-    { key: 'description', label: 'Descripción' },
-    { key: 'categoryName', label: 'Categoría' },
-    { key: 'amount', label: 'Monto', type: 'currency' },
-    { key: 'installmentInfo', label: 'Cuota', type: 'pill' },
-    { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor' },
-    { key: 'comments', label: 'Comentarios' },
+    { key: 'paymentDate', label: 'Fecha', type: 'date', align: 'center' },
+    { key: 'description', label: 'Descripción', align: 'left' },
+    { key: 'categoryName', label: 'Categoría', align: 'left' },
+    { key: 'amount', label: 'Monto', type: 'currency', align: 'right' },
+    { key: 'installmentInfo', label: 'Cuota', type: 'pill', align: 'center' },
+    { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor', align: 'center' },
+    { key: 'comments', label: 'Comentarios', align: 'left' },
   ];
 
   readonly tableActions: MenuItem[] = [
@@ -88,6 +90,9 @@ export class IncomesComponent implements OnInit {
   selectedInstances = signal<PaymentInstance[]>([]);
   selectedCategoryName = signal('—');
 
+  // Edit state
+  editingItem = signal<any>(null);
+
   // --------------- Computeds --------------- //
   dateRange = computed(() => getDateRange(this.referenceDate(), this.viewMode()));
   navigationLabel = computed(() => getNavigationLabel(this.referenceDate(), this.viewMode()));
@@ -105,7 +110,7 @@ export class IncomesComponent implements OnInit {
     const incomePaymentIds = new Set<number | string>(
       allPayments
         .filter((p) => p.paymentTypeId === this.INCOME_TYPE_ID)
-        .map((p) => p.id)
+        .map((p) => p.id!)
     );
     console.log('[Ingresos] filteredInstances → payments cargados:', allPayments);
     console.log('[Ingresos] filteredInstances → incomePaymentIds (tipo 1):', [...incomePaymentIds]);
@@ -179,7 +184,7 @@ export class IncomesComponent implements OnInit {
         .filter((p) => p.paymentTypeId === this.INCOME_TYPE_ID)
         .map((p) => p.paymentCategoryId)
     );
-    return this.categories().filter((c) => catIds.has(c.id));
+    return this.categories().filter((c) => catIds.has(c.id!));
   });
 
   // --------------- Init --------------- //
@@ -279,18 +284,117 @@ export class IncomesComponent implements OnInit {
         break;
       }
       case 'edit':
-        this.dialogService.alert('Editar', 'Funcionalidad de edición próximamente.', 'info');
+        this.handleEdit(event.item);
         break;
       case 'delete':
-        this.dialogService
-          .confirm('Eliminar ingreso', `¿Estás seguro de eliminar "${event.item.comments}"?`, 'error')
-          .subscribe((confirmed) => {
-            if (confirmed) {
-              this.paymentService.deletePaymentInstance(event.item.id).subscribe(() => this.loadData());
-            }
-          });
+        this.handleDelete(event.item);
         break;
     }
+  }
+
+  /**
+   * Eliminación selectiva (forward-only).
+   * Para pagos indefinidos: elimina el registro actual y todos los futuros de la serie.
+   * Para otros pagos: elimina solo la instancia seleccionada.
+   * Nunca toca registros anteriores (protección de histórico).
+   */
+  private handleDelete(item: any): void {
+    const payment = this.payments().find((p) => p.id === item.paymentId);
+    const isIndefinite = payment?.frequency && !payment?.installments;
+
+    if (isIndefinite) {
+      // Obtener las instancias futuras (>= fecha de la seleccionada)
+      const futureInstances = this.allInstances()
+        .filter((i) => i.paymentId === item.paymentId && i.paymentDate >= item.paymentDate)
+        .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
+
+      const count = futureInstances.length;
+      this.dialogService
+        .confirm(
+          'Eliminar ingreso indefinido',
+          `Se eliminarán ${count} registro(s): el seleccionado y todos los futuros de esta serie. Los registros anteriores NO se verán afectados. ¿Continuar?`,
+          'error'
+        )
+        .subscribe((confirmed) => {
+          if (confirmed) {
+            from(futureInstances).pipe(
+              concatMap((inst) => this.paymentService.deletePaymentInstanceById(inst.id!)),
+              toArray()
+            ).subscribe(() => this.loadData());
+          }
+        });
+    } else {
+      this.dialogService
+        .confirm('Eliminar ingreso', `¿Estás seguro de eliminar "${item.comments}"?`, 'error')
+        .subscribe((confirmed) => {
+          if (confirmed) {
+            this.paymentService.deletePaymentInstanceById(item.id).subscribe(() => this.loadData());
+          }
+        });
+    }
+  }
+
+  /**
+   * Modificación selectiva (forward-only).
+   * Para pagos indefinidos: el cambio de monto se aplica al registro actual y todos los futuros.
+   * Para otros pagos: edita solo la instancia seleccionada.
+   * Nunca toca registros anteriores (protección de histórico).
+   */
+  private handleEdit(item: any): void {
+    this.editingItem.set(item);
+    this.dialogService.open({
+      type: 'custom',
+      title: 'Editar ingreso',
+      templateRef: this.editFormTemplate,
+      wide: true,
+    });
+  }
+
+  onEditFormSubmit(result: InstanceEditResult): void {
+    const item = this.editingItem();
+    if (!item) return;
+
+    const payment = this.payments().find((p) => p.id === item.paymentId);
+    const isIndefinite = payment?.frequency && !payment?.installments;
+
+    if (isIndefinite) {
+      const futureInstances = this.allInstances()
+        .filter((i) => i.paymentId === item.paymentId && i.paymentDate >= item.paymentDate)
+        .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
+
+      const count = futureInstances.length;
+      this.dialogService.close();
+      this.dialogService
+        .confirm(
+          'Editar ingreso indefinido',
+          `Se modificarán ${count} registro(s): el seleccionado y todos los futuros de esta serie. Los registros anteriores NO se verán afectados. ¿Continuar?`,
+          'info'
+        )
+        .subscribe((confirmed) => {
+          if (confirmed) {
+            from(futureInstances).pipe(
+              concatMap((inst) =>
+                this.paymentService.updatePaymentInstance(inst.id!, {
+                  amount: result.amount,
+                  comments: result.comments,
+                })
+              ),
+              toArray()
+            ).subscribe(() => this.loadData());
+          }
+        });
+    } else {
+      this.dialogService.close();
+      this.paymentService
+        .updatePaymentInstance(item.id, { amount: result.amount, comments: result.comments })
+        .subscribe(() => this.loadData());
+    }
+    this.editingItem.set(null);
+  }
+
+  onEditFormCancel(): void {
+    this.editingItem.set(null);
+    this.dialogService.close();
   }
 
   onAdd(): void {
@@ -343,7 +447,7 @@ export class IncomesComponent implements OnInit {
     if (!payment.frequency) {
       // Pago único
       return [{
-        paymentId: payment.id,
+        paymentId: payment.id!,
         amount: payment.totalAmount,
         paymentDate: payment.startDate,
         installmentNumber: 1,
@@ -362,15 +466,15 @@ export class IncomesComponent implements OnInit {
       );
       amount = Math.round((payment.totalAmount / payment.installments) * 100) / 100;
     } else {
-      // Recurrente indefinido → generar hasta hoy
-      dates = generateIndefiniteInstanceDates(
-        payment.frequency, payment.startDate, payment.paymentDay, today
+      // Recurrente indefinido → generar 60 períodos (5 años)
+      dates = generateIndefiniteInstanceDatesFor5Years(
+        payment.frequency, payment.startDate, payment.paymentDay
       );
       amount = payment.totalAmount;
     }
 
     return dates.map((date, index) => ({
-      paymentId: payment.id,
+      paymentId: payment.id!,
       amount,
       paymentDate: date,
       installmentNumber: index + 1,

@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-4 max-w-6xl mx-auto h-full">
+<div class="flex flex-col gap-4 max-w-5xl mx-auto h-full w-full">
 
   <!-- Header -->
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -14,8 +14,8 @@
 
     <div class="flex items-center gap-2 flex-wrap">
       <!-- View Mode Selector -->
-      <select class="select select-sm select-bordered w-28"
-        [ngModel]="viewMode()" (ngModelChange)="onViewModeChange($event)">
+      <select class="select select-sm select-bordered w-28" [ngModel]="viewMode()"
+        (ngModelChange)="onViewModeChange($event)">
         @for (opt of viewModeOptions; track opt.value) {
         <option [value]="opt.value">{{ opt.label }}</option>
         }
@@ -26,8 +26,8 @@
         <button class="btn btn-sm join-item btn-ghost" (click)="prev()">
           <i class="bi bi-chevron-left"></i>
         </button>
-        <button class="btn btn-sm join-item btn-ghost no-animation font-semibold min-w-36"
-          (click)="resetToToday()" title="Volver a hoy">
+        <button class="btn btn-sm join-item btn-ghost no-animation font-semibold min-w-36" (click)="resetToToday()"
+          title="Volver a hoy">
           {{ navigationLabel() }}
         </button>
         <button class="btn btn-sm join-item btn-ghost" (click)="next()">
@@ -49,20 +49,20 @@
       <div class="flex flex-col sm:flex-row gap-3">
         <label class="input input-sm input-bordered flex items-center gap-2 flex-1">
           <i class="bi bi-search text-base-content/40"></i>
-          <input type="text" class="grow" placeholder="Buscar por descripción, categoría..."
-            [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)" />
+          <input type="text" class="grow" placeholder="Buscar por descripción, categoría..." [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchChange($event)" />
         </label>
 
-        <select class="select select-sm select-bordered w-full sm:w-44"
-          [ngModel]="selectedCategoryId() ?? ''" (ngModelChange)="onCategoryChange($event)">
+        <select class="select select-sm select-bordered w-full sm:w-44" [ngModel]="selectedCategoryId() ?? ''"
+          (ngModelChange)="onCategoryChange($event)">
           <option value="">Todas las categorías</option>
           @for (cat of expenseCategories(); track cat.id) {
           <option [value]="cat.id">{{ cat.value }}</option>
           }
         </select>
 
-        <select class="select select-sm select-bordered w-full sm:w-36"
-          [ngModel]="selectedState() ?? ''" (ngModelChange)="onStateChange($event)">
+        <select class="select select-sm select-bordered w-full sm:w-36" [ngModel]="selectedState() ?? ''"
+          (ngModelChange)="onStateChange($event)">
           <option value="">Todos los estados</option>
           <option value="PAID">Pagado</option>
           <option value="PENDING">Pendiente</option>
@@ -102,32 +102,30 @@
   </div>
   } @else {
   <div class="flex-1 min-h-0 flex flex-col">
-    <app-data-table
-      [columns]="columnsWithOptions()"
-      [data]="tableData()"
-      [showActions]="true"
-      [actions]="tableActions"
-      (actionClicked)="onTableAction($event)"
-      (badgeOptionClicked)="onBadgeOptionClicked($event)"
-    />
+    <app-data-table [columns]="columnsWithOptions()" [data]="tableData()" [showActions]="true" [actions]="tableActions"
+      (actionClicked)="onTableAction($event)" (badgeOptionClicked)="onBadgeOptionClicked($event)" />
   </div>
   }
 </div>
 
 <!-- Form template for dialog -->
 <ng-template #expenseFormTemplate>
-  <app-payment-form
-    [paymentTypeId]="EXPENSE_TYPE_ID"
-    (formSubmit)="onFormSubmit($event)"
+  <app-payment-form [paymentTypeId]="EXPENSE_TYPE_ID" (formSubmit)="onFormSubmit($event)"
     (formCancel)="onFormCancel()" />
 </ng-template>
 
 <!-- Detail template for dialog -->
 <ng-template #detailTemplate>
   @if (selectedPayment()) {
-  <app-payment-detail
-    [payment]="selectedPayment()!"
-    [instances]="selectedInstances()"
+  <app-payment-detail [payment]="selectedPayment()!" [instances]="selectedInstances()"
     [categoryName]="selectedCategoryName()" />
+  }
+</ng-template>
+
+<!-- Edit form template for dialog -->
+<ng-template #editFormTemplate>
+  @if (editingItem()) {
+  <app-instance-edit-form [initialAmount]="editingItem().amount" [initialComments]="editingItem().comments"
+    (formSubmit)="onEditFormSubmit($event)" (formCancel)="onEditFormCancel()" />
   }
 </ng-template>

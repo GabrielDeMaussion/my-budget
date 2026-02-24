@@ -20,6 +20,7 @@ export class PaymentDetailComponent {
   payment = input.required<Payment>();
   instances = input.required<PaymentInstance[]>();
   categoryName = input<string>('—');
+  showInstancesTable = input<boolean>(true);
 
   // --------------- Computeds --------------- //
   /** El plan es de tipo único (frequency null) */
@@ -35,11 +36,11 @@ export class PaymentDetailComponent {
 
   /** Columnas para la tabla de instancias */
   readonly instanceColumns: TableColumn[] = [
-    { key: 'installmentNumber', label: '#' },
-    { key: 'paymentDate', label: 'Fecha', type: 'date' },
-    { key: 'amount', label: 'Monto', type: 'currency' },
-    { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor' },
-    { key: 'comments', label: 'Comentarios' },
+    { key: 'installmentNumber', label: '#', align: 'center' },
+    { key: 'paymentDate', label: 'Fecha', type: 'date', align: 'center' },
+    { key: 'amount', label: 'Monto', type: 'currency', align: 'right' },
+    { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor', align: 'center' },
+    { key: 'comments', label: 'Comentarios', align: 'left' },
   ];
 
   /** Instancias enriquecidas con labels/colors, ordenadas por # cuota */

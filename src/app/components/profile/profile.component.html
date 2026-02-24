@@ -1,3 +1,156 @@
-<p>
-  profile works!
-</p>
+<div class="max-w-4xl mx-auto h-full overflow-y-auto pb-10">
+
+  <!-- Encabezado con foto de portada y avatar -->
+  <div class="relative rounded-2xl overflow-hidden shadow-sm mb-6 bg-base-100 border border-base-200">
+    <div class="h-48 w-full bg-gradient-to-r from-primary/80 to-secondary/80 object-cover">
+      <!-- Malla colorida de fondo -->
+    </div>
+
+    <div class="px-6 pb-6 relative">
+      <div class="flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-16 sm:-mt-12 mb-4">
+        <div class="avatar relative group">
+          <div
+            class="w-32 h-32 rounded-full ring ring-base-100 ring-offset-base-100 ring-offset-2 shadow-lg bg-base-300">
+            <!-- Initials fallback since there's no photo -->
+            <div
+              class="w-full h-full flex items-center justify-center text-4xl font-bold text-base-content/50 uppercase">
+              {{ profileData().name.charAt(0) }}{{ profileData().lastName.charAt(0) }}
+            </div>
+            <!-- Overlay para cambiar foto -->
+            <div
+              class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white font-semibold rounded-full">
+              <i class="bi bi-camera text-2xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 text-center sm:text-left">
+          <h2 class="text-3xl font-bold">{{ profileData().name }} {{ profileData().lastName }}</h2>
+          <p class="text-base-content/60">{{ profileData().jobTitle }} • {{ profileData().location }}</p>
+        </div>
+
+        <div class="mt-4 sm:mt-0 flex gap-2">
+          <button class="btn btn-primary" (click)="saveProfile()" [disabled]="isSaving()">
+            @if (isSaving()) { <span class="loading loading-spinner w-4 h-4"></span> }
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Columna Izquierda (Pequeña info) -->
+    <div class="flex flex-col gap-6">
+
+      <!-- Card: Mi Cuenta -->
+      <div class="card bg-base-100 shadow-sm border border-base-200">
+        <div class="card-body p-5">
+          <h3 class="card-title text-base mb-4"><i class="bi bi-person-badge text-primary"></i> Mi Cuenta</h3>
+
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-col text-sm border-b border-base-200 pb-2">
+              <span class="text-base-content/50 text-xs uppercase tracking-wide">ID de Usuario</span>
+              <span class="font-mono text-xs mt-1">UUID-9821-X9A</span>
+            </div>
+            <div class="flex flex-col text-sm border-b border-base-200 pb-2">
+              <span class="text-base-content/50 text-xs uppercase tracking-wide">Miembro desde</span>
+              <span class="font-medium">Octubre 2025</span>
+            </div>
+            <div class="flex flex-col text-sm border-b border-base-200 pb-2">
+              <span class="text-base-content/50 text-xs uppercase tracking-wide">Plan Actual</span>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="badge badge-primary badge-sm">Premium</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna Derecha (Formularios) -->
+    <div class="col-span-1 md:col-span-2 flex flex-col gap-6">
+
+      <!-- Información Personal -->
+      <div class="card bg-base-100 shadow-sm border border-base-200">
+        <div class="card-body p-6">
+          <h3 class="text-lg font-bold mb-4 border-b border-base-200 pb-2">Información Personal</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Nombre</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="profileData().name" />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Apellidos</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="profileData().lastName" />
+            </div>
+
+            <div class="form-control w-full md:col-span-2">
+              <label class="label"><span class="label-text">Correo Electrónico</span></label>
+              <div class="relative">
+                <input type="email" class="input input-bordered w-full pl-10" [(ngModel)]="profileData().email"
+                  readonly />
+                <i class="bi bi-envelope absolute left-4 top-1/2 -translate-y-1/2 text-base-content/50"></i>
+              </div>
+              <label class="label"><span class="label-text-alt text-base-content/50">El correo principal no puede ser
+                  modificado.</span></label>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Teléfono</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="profileData().phone" />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Ubicación</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="profileData().location" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seguridad y Contraseña -->
+      <div class="card bg-base-100 shadow-sm border border-base-200">
+        <div class="card-body p-6">
+          <h3 class="text-lg font-bold mb-4 border-b border-base-200 pb-2">Seguridad</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control w-full md:col-span-2">
+              <label class="label"><span class="label-text">Contraseña Actual</span></label>
+              <input type="password" class="input input-bordered w-full" placeholder="••••••••" />
+            </div>
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Nueva Contraseña</span></label>
+              <input type="password" class="input input-bordered w-full" placeholder="••••••••" />
+            </div>
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Confirmar Contraseña</span></label>
+              <input type="password" class="input input-bordered w-full" placeholder="••••••••" />
+            </div>
+
+            <div class="md:col-span-2 mt-2">
+              <button class="btn btn-outline btn-sm">Actualizar Contraseña</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zona de Peligro -->
+      <div class="card bg-error/10 border border-error/30 mt-4">
+        <div class="card-body p-6">
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-error mb-1">Eliminar Cuenta</h3>
+              <p class="text-sm text-base-content/70">Una vez borres la cuenta, no hay vuelta atrás. Por favor confirma
+                tu decisión.</p>
+            </div>
+            <button class="btn btn-error text-white shrink-0">Dar de Baja Mí Cuenta</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

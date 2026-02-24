@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { MenuComponent, MenuItem } from '../menu/menu.component';
 import { BadgeComponent, BadgeOption } from '../badge/badge.component';
 
@@ -16,11 +16,13 @@ export interface TableColumn {
   badgeColor?: string;
   /** (badge) Si se proporcionan, el badge actúa como un dropdown menu */
   badgeOptions?: BadgeOption[];
+  /** Alineación del texto en la columna */
+  align?: 'left' | 'center' | 'right';
 }
 
 @Component({
   selector: 'app-data-table',
-  imports: [CurrencyPipe, DatePipe, MenuComponent, BadgeComponent],
+  imports: [CurrencyPipe, DatePipe, NgClass, MenuComponent, BadgeComponent],
   templateUrl: './data-table.component.html',
   styleUrls: ['./data-table.component.css'],
 })

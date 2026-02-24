@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6 max-w-4xl mx-auto">
+<div class="flex flex-col gap-6 max-w-5xl mx-auto w-full">
 
   <!-- Header -->
   <div class="flex items-center gap-3">
@@ -22,11 +22,8 @@
 
       <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
         @for (theme of themes; track theme) {
-        <button class="btn btn-sm capitalize"
-          [class.btn-primary]="currentTheme() === theme"
-          [class.btn-ghost]="currentTheme() !== theme"
-          (click)="onThemeChange(theme)"
-          [attr.data-theme]="theme">
+        <button class="btn btn-sm capitalize" [class.btn-primary]="currentTheme() === theme"
+          [class.btn-ghost]="currentTheme() !== theme" (click)="onThemeChange(theme)" [attr.data-theme]="theme">
           <span class="flex items-center gap-1">
             @if (currentTheme() === theme) {
             <i class="bi bi-check-circle-fill text-xs"></i>
@@ -50,12 +47,9 @@
 
       <!-- Add New Category -->
       <div class="flex gap-2 mb-4">
-        <input type="text" class="input input-sm input-bordered flex-1"
-          [(ngModel)]="newCategoryName"
-          placeholder="Nueva categoría..."
-          (keydown.enter)="addCategory()" />
-        <button class="btn btn-primary btn-sm gap-1" (click)="addCategory()"
-          [disabled]="!newCategoryName.trim()">
+        <input type="text" class="input input-sm input-bordered flex-1" [(ngModel)]="newCategoryName"
+          placeholder="Nueva categoría..." (keydown.enter)="addCategory()" />
+        <button class="btn btn-primary btn-sm gap-1" (click)="addCategory()" [disabled]="!newCategoryName.trim()">
           <i class="bi bi-plus-lg"></i>
           Agregar
         </button>
@@ -72,10 +66,8 @@
         <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-300/50 transition-colors group">
           @if (editingCategoryId() === cat.id) {
           <!-- Edit Mode -->
-          <input type="text" class="input input-sm input-bordered flex-1"
-            [(ngModel)]="editingCategoryValue"
-            (keydown.enter)="saveEdit(cat)"
-            (keydown.escape)="cancelEdit()" />
+          <input type="text" class="input input-sm input-bordered flex-1" [(ngModel)]="editingCategoryValue"
+            (keydown.enter)="saveEdit(cat)" (keydown.escape)="cancelEdit()" />
           <button class="btn btn-success btn-xs btn-ghost" (click)="saveEdit(cat)" title="Guardar">
             <i class="bi bi-check-lg"></i>
           </button>
@@ -105,5 +97,35 @@
       </div>
       }
     </div>
+  </div>
+</div>
+
+<!-- Backup & Restore -->
+<div class="card bg-base-100 shadow-xl mt-6">
+  <div class="card-body gap-4 p-4 sm:p-6">
+    <div class="flex items-center gap-2">
+      <i class="bi bi-database text-warning text-xl"></i>
+      <h2 class="card-title text-base sm:text-lg">Respaldo de Seguridad</h2>
+    </div>
+    <p class="text-sm text-base-content/60">
+      Debido a que tus datos se almacenan de forma local en el navegador, es muy importante realizar respaldos (backups)
+      periódicos para evitar perder información. Puedes exportar la base de datos o restaurar un backup existente aquí.
+    </p>
+
+    <div class="flex flex-col sm:flex-row gap-4 mt-2">
+      <!-- Export Button -->
+      <button class="btn btn-outline btn-warning gap-2 flex-1" (click)="exportDatabase()" [disabled]="isLoading()">
+        <i class="bi bi-cloud-download text-lg"></i>
+        Exportar Backup
+      </button>
+
+      <!-- Import Button (Hidden Input) -->
+      <input type="file" id="backupFileInput" accept=".json" class="hidden" (change)="importDatabase($event)">
+      <button class="btn btn-outline btn-info gap-2 flex-1" (click)="triggerFileInput()" [disabled]="isLoading()">
+        <i class="bi bi-cloud-upload text-lg"></i>
+        Importar Backup
+      </button>
+    </div>
+
   </div>
 </div>

@@ -6,6 +6,6 @@
  * - value: Nombre de la categoría (e.g. "Salario", "Alimentación")
  */
 export interface PaymentCategory {
-  id: number;
+  id?: number;
   value: string;
 }

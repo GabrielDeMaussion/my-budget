@@ -1,5 +1,10 @@
 import { PaymentFrequency } from '../interfaces/enums/payment-frequency.enum';
 
+// ─────────────────── Constants ───────────────────
+
+/** Número de períodos a generar para pagos indefinidos (5 años = 60 meses) */
+export const INDEFINITE_PERIODS = 60;
+
 // ─────────────────── Public API ───────────────────
 
 /**
@@ -45,6 +50,26 @@ export function generateIndefiniteInstanceDates(
   }
 
   return dates.length > 0 ? dates : [startDate];
+}
+
+/**
+ * Genera exactamente INDEFINITE_PERIODS (60) fechas de instancia
+ * para pagos recurrentes indefinidos (replicación a 5 años).
+ */
+export function generateIndefiniteInstanceDatesFor5Years(
+  frequency: string,
+  startDate: string,
+  paymentDay: number | null,
+): string[] {
+  const dates: string[] = [];
+  let current = getFirstInstanceDate(frequency, startDate, paymentDay);
+
+  for (let i = 0; i < INDEFINITE_PERIODS; i++) {
+    dates.push(formatDate(current));
+    current = advanceDate(current, frequency, paymentDay);
+  }
+
+  return dates;
 }
 
 /** Calcula el monto por cuota para pagos finitos recurrentes */

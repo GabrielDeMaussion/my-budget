@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild, ElementRef, AfterViewInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -25,13 +25,17 @@ import {
 import { PaymentService } from '../../services/payment.service';
 import { AuthService } from '../../services/auth.service';
 
+export type DetailView = 'table' | 'charts';
+export type ChartMetric = 'category' | 'state' | 'type';
+export type TrendMetric = 'amount' | 'count';
+
 @Component({
   selector: 'app-summary',
   imports: [CommonModule, FormsModule, DataTableComponent],
   templateUrl: './summary.component.html',
   styleUrls: ['./summary.component.css'],
 })
-export class SummaryComponent implements OnInit {
+export class SummaryComponent implements OnInit, AfterViewInit {
   // --------------- Injects --------------- //
   private readonly paymentService = inject(PaymentService);
   private readonly authService = inject(AuthService);
@@ -47,13 +51,31 @@ export class SummaryComponent implements OnInit {
   );
 
   readonly columns: TableColumn[] = [
-    { key: 'paymentDate', label: 'Fecha', type: 'date' },
-    { key: 'typeName', label: 'Tipo', type: 'badge', badgeColorKey: 'typeColor' },
-    { key: 'description', label: 'Descripción' },
-    { key: 'categoryName', label: 'Categoría' },
-    { key: 'amount', label: 'Monto', type: 'currency' },
-    { key: 'installmentInfo', label: 'Cuota', type: 'pill' },
-    { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor' },
+    { key: 'paymentDate', label: 'Fecha', type: 'date', align: 'center' },
+    { key: 'typeName', label: 'Tipo', type: 'badge', badgeColorKey: 'typeColor', align: 'center' },
+    { key: 'description', label: 'Descripción', align: 'left' },
+    { key: 'categoryName', label: 'Categoría', align: 'left' },
+    { key: 'amount', label: 'Monto', type: 'currency', align: 'right' },
+    { key: 'installmentInfo', label: 'Cuota', type: 'pill', align: 'center' },
+    { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor', align: 'center' },
+  ];
+
+  // --------------- Chart View Options --------------- //
+  readonly chartMetricOptions: { value: ChartMetric; label: string }[] = [
+    { value: 'category', label: 'Por Categoría' },
+    { value: 'state', label: 'Por Estado' },
+    { value: 'type', label: 'Ingresos vs Gastos' },
+  ];
+
+  readonly trendMetricOptions: { value: TrendMetric; label: string }[] = [
+    { value: 'amount', label: 'Monto ($)' },
+    { value: 'count', label: 'Cant. Movimientos' },
+  ];
+
+  readonly CHART_COLORS = [
+    '#6366f1', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6',
+    '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#3b82f6',
+    '#84cc16', '#a855f7', '#ef4444', '#22d3ee', '#e879f9',
   ];
 
   // --------------- State --------------- //
@@ -69,6 +91,19 @@ export class SummaryComponent implements OnInit {
   selectedType = signal<string | null>(null);
   sortDirection = signal<'asc' | 'desc'>('asc');
 
+  // Detail view toggle
+  detailView = signal<DetailView>('table');
+  chartMetric = signal<ChartMetric>('category');
+  chartTypeFilter = signal<'all' | 'income' | 'expense'>('all');
+  trendMetric = signal<TrendMetric>('amount');
+  trendTypeFilter = signal<'all' | 'income' | 'expense'>('all');
+
+  // Canvas refs
+  @ViewChild('donutCanvas') donutCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('trendCanvas') trendCanvas!: ElementRef<HTMLCanvasElement>;
+
+  private viewInitialized = false;
+
   // --------------- Computeds --------------- //
   dateRange = computed(() => getDateRange(this.referenceDate(), this.viewMode()));
   navigationLabel = computed(() => getNavigationLabel(this.referenceDate(), this.viewMode()));
@@ -81,16 +116,9 @@ export class SummaryComponent implements OnInit {
 
   filteredInstances = computed(() => {
     const { start, end } = this.dateRange();
-    const allPayments = this.payments();
-    const allInstances = this.allInstances();
-    console.log('[Resumen] filteredInstances → payments cargados:', allPayments);
-    console.log('[Resumen] filteredInstances → instancias cargadas:', allInstances);
-    console.log('[Resumen] filteredInstances → rango de fecha:', { start, end });
-    const result = allInstances.filter(
+    return this.allInstances().filter(
       (inst) => inst.paymentDate >= start && inst.paymentDate <= end
     );
-    console.log('[Resumen] filteredInstances → resultado final:', result);
-    return result;
   });
 
   tableData = computed(() => {
@@ -163,9 +191,121 @@ export class SummaryComponent implements OnInit {
   balance = computed(() => this.totalIncome() - this.totalExpense());
   balanceColor = computed(() => (this.balance() >= 0 ? 'text-success' : 'text-error'));
 
+  // --------------- Chart Data Computeds --------------- //
+
+  /** Data for the donut/pie chart */
+  donutData = computed(() => {
+    const rows = this.filteredInstances();
+    const metric = this.chartMetric();
+    const typeFilter = this.chartTypeFilter();
+
+    let filtered = rows.map(inst => {
+      const payment = this.payments().find(p => p.id === inst.paymentId);
+      const category = this.categories().find(c => c.id === payment?.paymentCategoryId);
+      return { ...inst, payment, categoryName: category?.value ?? 'Sin categoría', paymentTypeId: payment?.paymentTypeId ?? 0 };
+    });
+
+    if (typeFilter === 'income') filtered = filtered.filter(r => r.paymentTypeId === this.INCOME_TYPE_ID);
+    if (typeFilter === 'expense') filtered = filtered.filter(r => r.paymentTypeId === this.EXPENSE_TYPE_ID);
+
+    const groups: Record<string, number> = {};
+
+    if (metric === 'category') {
+      filtered.forEach(r => { groups[r.categoryName] = (groups[r.categoryName] || 0) + r.amount; });
+    } else if (metric === 'state') {
+      filtered.forEach(r => {
+        const label = getInstanceStateLabel(r.state);
+        groups[label] = (groups[label] || 0) + r.amount;
+      });
+    } else {
+      filtered.forEach(r => {
+        const label = r.paymentTypeId === this.INCOME_TYPE_ID ? 'Ingresos' : 'Gastos';
+        groups[label] = (groups[label] || 0) + r.amount;
+      });
+    }
+
+    return Object.entries(groups)
+      .map(([label, value], i) => ({ label, value, color: this.CHART_COLORS[i % this.CHART_COLORS.length] }))
+      .sort((a, b) => b.value - a.value);
+  });
+
+  /** Data for the trend line chart (last 6 months always) */
+  trendData = computed(() => {
+    const metric = this.trendMetric();
+    const typeFilter = this.trendTypeFilter();
+    const allInstances = this.allInstances();
+    const payments = this.payments();
+
+    // Generate last 6 months labels
+    const months: { label: string; start: string; end: string }[] = [];
+    const now = this.referenceDate();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const startStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const endStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      months.push({ label: `${monthNames[month]} ${year}`, start: startStr, end: endStr });
+    }
+
+    const incomeData: number[] = [];
+    const expenseData: number[] = [];
+
+    months.forEach(m => {
+      let monthInstances = allInstances.filter(inst => inst.paymentDate >= m.start && inst.paymentDate <= m.end);
+
+      let enriched = monthInstances.map(inst => {
+        const payment = payments.find(p => p.id === inst.paymentId);
+        return { ...inst, paymentTypeId: payment?.paymentTypeId ?? 0 };
+      });
+
+      const incomeRows = enriched.filter(r => r.paymentTypeId === this.INCOME_TYPE_ID);
+      const expenseRows = enriched.filter(r => r.paymentTypeId === this.EXPENSE_TYPE_ID);
+
+      if (metric === 'amount') {
+        incomeData.push(incomeRows.reduce((s, r) => s + r.amount, 0));
+        expenseData.push(expenseRows.reduce((s, r) => s + r.amount, 0));
+      } else {
+        incomeData.push(incomeRows.length);
+        expenseData.push(expenseRows.length);
+      }
+    });
+
+    return {
+      labels: months.map(m => m.label),
+      income: incomeData,
+      expense: expenseData,
+    };
+  });
+
+  constructor() {
+    // Effect to re-render charts when data or settings change
+    effect(() => {
+      // Access signals to trigger effect
+      const view = this.detailView();
+      const donut = this.donutData();
+      const trend = this.trendData();
+      const loading = this.isLoading();
+
+      if (view === 'charts' && !loading && this.viewInitialized) {
+        // Schedule after DOM update
+        setTimeout(() => {
+          this.renderDonutChart();
+          this.renderTrendChart();
+        }, 50);
+      }
+    });
+  }
+
   // --------------- Init --------------- //
   ngOnInit(): void {
     this.loadData();
+  }
+
+  ngAfterViewInit(): void {
+    this.viewInitialized = true;
   }
 
   // --------------- Methods --------------- //
@@ -184,12 +324,6 @@ export class SummaryComponent implements OnInit {
       types: this.paymentService.getPaymentTypes(),
     }).subscribe({
       next: (data) => {
-        console.log('[Resumen] loadData result:', {
-          categories: data.categories,
-          payments: data.payments,
-          instances: data.instances,
-          types: data.types,
-        });
         this.categories.set(data.categories);
         this.payments.set(data.payments);
         this.allInstances.set(data.instances);
@@ -234,8 +368,232 @@ export class SummaryComponent implements OnInit {
   onBadgeOptionClicked(event: { column: string; item: any; optionId: string }): void {
     if (event.column === 'stateLabel') {
       this.paymentService
-        .updatePaymentInstance(event.item.id, { state: event.optionId })
+        .updatePaymentInstance(event.item.id!, { state: event.optionId })
         .subscribe(() => this.loadData());
     }
+  }
+
+  setDetailView(view: DetailView): void {
+    this.detailView.set(view);
+  }
+
+  // ============================================================
+  // Canvas Chart Rendering
+  // ============================================================
+
+  private renderDonutChart(): void {
+    const canvas = this.donutCanvas?.nativeElement;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const data = this.donutData();
+    if (data.length === 0) {
+      ctx.fillStyle = '#64748b';
+      ctx.font = '14px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No hay datos para mostrar', w / 2, h / 2);
+      return;
+    }
+
+    const total = data.reduce((s, d) => s + d.value, 0);
+    const cx = w * 0.35;
+    const cy = h / 2;
+    const radius = Math.min(cx, cy) - 20;
+    const innerRadius = radius * 0.55;
+
+    let startAngle = -Math.PI / 2;
+
+    data.forEach(slice => {
+      const sliceAngle = (slice.value / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + innerRadius * Math.cos(startAngle), cy + innerRadius * Math.sin(startAngle));
+      ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
+      ctx.arc(cx, cy, innerRadius, startAngle + sliceAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fillStyle = slice.color;
+      ctx.fill();
+      startAngle += sliceAngle;
+    });
+
+    // Center text
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('color') || '#e2e8f0';
+    ctx.font = 'bold 18px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`$${total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cx, cy - 8);
+    ctx.font = '11px Inter, sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Total', cx, cy + 12);
+
+    // Legend on the right side
+    const legendX = w * 0.65;
+    let legendY = Math.max(20, cy - (data.length * 28) / 2);
+
+    data.forEach(slice => {
+      const pct = ((slice.value / total) * 100).toFixed(1);
+
+      ctx.fillStyle = slice.color;
+      ctx.fillRect(legendX, legendY, 12, 12);
+
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('color') || '#e2e8f0';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`${slice.label}`, legendX + 18, legendY - 1);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px Inter, sans-serif';
+      ctx.fillText(`$${slice.value.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${pct}%)`, legendX + 18, legendY + 13);
+
+      legendY += 32;
+    });
+  }
+
+  private renderTrendChart(): void {
+    const canvas = this.trendCanvas?.nativeElement;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const trend = this.trendData();
+    const typeFilter = this.trendTypeFilter();
+    const labels = trend.labels;
+    const datasets: { data: number[]; color: string; label: string }[] = [];
+
+    if (typeFilter === 'all' || typeFilter === 'income') {
+      datasets.push({ data: trend.income, color: '#10b981', label: 'Ingresos' });
+    }
+    if (typeFilter === 'all' || typeFilter === 'expense') {
+      datasets.push({ data: trend.expense, color: '#f43f5e', label: 'Gastos' });
+    }
+
+    const padding = { top: 30, right: 20, bottom: 50, left: 65 };
+    const chartW = w - padding.left - padding.right;
+    const chartH = h - padding.top - padding.bottom;
+
+    // Calculate max value
+    let maxVal = 0;
+    datasets.forEach(ds => ds.data.forEach(v => { if (v > maxVal) maxVal = v; }));
+    if (maxVal === 0) maxVal = 100;
+    maxVal = Math.ceil(maxVal * 1.15);
+
+    // Grid lines
+    const gridLines = 5;
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 0.5;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i <= gridLines; i++) {
+      const y = padding.top + chartH - (i / gridLines) * chartH;
+      const val = (i / gridLines) * maxVal;
+
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(padding.left + chartW, y);
+      ctx.stroke();
+
+      const metric = this.trendMetric();
+      const formatted = metric === 'amount'
+        ? `$${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toFixed(0)}`
+        : val.toFixed(0);
+      ctx.fillText(formatted, padding.left - 8, y);
+    }
+
+    // X labels
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    labels.forEach((label, i) => {
+      const x = padding.left + (i / (labels.length - 1)) * chartW;
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(label, x, padding.top + chartH + 10);
+    });
+
+    // Draw lines
+    datasets.forEach(ds => {
+      ctx.beginPath();
+      ctx.strokeStyle = ds.color;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      ds.data.forEach((val, i) => {
+        const x = padding.left + (i / (labels.length - 1)) * chartW;
+        const y = padding.top + chartH - (val / maxVal) * chartH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Gradient fill
+      const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartH);
+      gradient.addColorStop(0, ds.color + '40');
+      gradient.addColorStop(1, ds.color + '05');
+
+      ctx.beginPath();
+      ds.data.forEach((val, i) => {
+        const x = padding.left + (i / (labels.length - 1)) * chartW;
+        const y = padding.top + chartH - (val / maxVal) * chartH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineTo(padding.left + chartW, padding.top + chartH);
+      ctx.lineTo(padding.left, padding.top + chartH);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Dots
+      ds.data.forEach((val, i) => {
+        const x = padding.left + (i / (labels.length - 1)) * chartW;
+        const y = padding.top + chartH - (val / maxVal) * chartH;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = ds.color;
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    });
+
+    // Legend at top
+    let legendX = padding.left;
+    datasets.forEach(ds => {
+      ctx.fillStyle = ds.color;
+      ctx.fillRect(legendX, 8, 12, 12);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(ds.label, legendX + 16, 9);
+      legendX += ctx.measureText(ds.label).width + 40;
+    });
   }
 }

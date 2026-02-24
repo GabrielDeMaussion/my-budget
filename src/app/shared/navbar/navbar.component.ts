@@ -11,15 +11,16 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
 })
 export class NavbarComponent implements OnInit {
   // --------------- Inyections --------------- //
-  
-  
+
+
   // --------------- Properties --------------- //
   links: Link[] = [
     { label: 'Ingresos', route: '/incomes' },
     { label: 'Gastos', route: '/expenses' },
+    { label: 'Planes', route: '/payment-plans' },
     { label: 'Balance General', route: '/summary' }
   ]
-  
+
   // --------------- Init --------------- //
   ngOnInit() {
   }

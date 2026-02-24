@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, signal, HostListener, OnDestroy } from '@angular/core';
 
 /**
  * Interfaz para los items del menú desplegable genérico.
@@ -28,12 +28,55 @@ export class MenuComponent {
   // --------------- Outputs --------------- //
   itemClicked = output<string>();
 
-  // --------------- Methods --------------- //
-  onItemClicked(item: MenuItem): void {
-    this.itemClicked.emit(item.id);
-    // Cerrar el dropdown al hacer click
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
+  // --------------- State --------------- //
+  isOpen = signal(false);
+  menuTop = signal(0);
+  menuLeft = signal(0);
+
+  // --------------- Lifecycle --------------- //
+  constructor() {
+    // Escucha scrolls en fase de captura para cerrar menús si el contenedor hace scroll
+    window.addEventListener('scroll', this.scrollListener, true);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('scroll', this.scrollListener, true);
+  }
+
+  private scrollListener = (event: Event): void => {
+    if (this.isOpen()) {
+      this.isOpen.set(false);
     }
+  }
+
+  // --------------- Methods --------------- //
+  toggleMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.isOpen()) {
+      this.isOpen.set(false);
+      return;
+    }
+
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const menuWidth = 208; // 52 * 4px = 208px (Clase w-52)
+    let left = rect.right - menuWidth;
+    if (left < 10) left = 10;
+
+    this.menuTop.set(rect.bottom + 4);
+    this.menuLeft.set(left);
+    this.isOpen.set(true);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.isOpen()) {
+      this.isOpen.set(false);
+    }
+  }
+
+  onItemClicked(item: MenuItem, event: MouseEvent): void {
+    event.stopPropagation();
+    this.itemClicked.emit(item.id);
+    this.isOpen.set(false);
   }
 }

@@ -8,7 +8,7 @@
  * - isActive: Indica si el registro está activo
  */
 export interface Audit {
-  id: number;
+  id?: number;
   createdDate: string;
   updatedDate: string;
   isActive: boolean;

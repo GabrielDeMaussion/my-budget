@@ -28,6 +28,11 @@ export const routes: Routes = [
         canActivate: [authGuard]
     },
     {
+        path: 'payment-plans',
+        loadComponent: () => import('./components/payment-plans/payment-plans.component').then(m => m.PaymentPlansComponent),
+        canActivate: [authGuard]
+    },
+    {
         path: 'summary',
         loadComponent: () => import('./components/summary/summary.component').then(m => m.SummaryComponent),
         canActivate: [authGuard]
@@ -45,5 +50,5 @@ export const routes: Routes = [
         path: '**',
         redirectTo: '/404'
     }
-    
+
 ];

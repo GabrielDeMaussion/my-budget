@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-4 h-full">
 
   <!-- Encabezado tipo de plan -->
   <div class="flex items-center gap-2">
@@ -77,13 +77,16 @@
   }
 
   <!-- Para pagos recurrentes: tabla de cuotas -->
-  @if (!isOnce()) {
+  @if (!isOnce() && showInstancesTable()) {
   <div class="divider my-0"></div>
 
   <h4 class="font-semibold text-sm text-base-content/60 uppercase tracking-wide">
     <i class="bi bi-list-ol me-1"></i> Cuotas ({{ enrichedInstances().length }})
   </h4>
 
-  <app-data-table [columns]="instanceColumns" [data]="enrichedInstances()" />
+  <div class="flex-1 min-h-0 flex flex-col">
+    <app-data-table [columns]="instanceColumns" [data]="enrichedInstances()"
+      class="flex-1 flex flex-col min-h-[300px]" />
+  </div>
   }
 </div>

@@ -1,12 +1,18 @@
-<div class="rounded-lg border border-base-300 flex-1 min-h-0 overflow-auto">
+<div class="rounded-lg border border-base-300 flex-1 min-h-0 overflow-visible">
   <table class="table table-zebra w-full">
     <thead class="sticky top-0 z-10">
       <tr class="bg-base-300">
         @for (col of columns(); track col.key) {
-        <th class="text-sm font-semibold text-base-content">{{ col.label }}</th>
+        <th class="text-sm font-semibold text-base-content whitespace-nowrap px-4 py-3" [ngClass]="{
+              'text-left': !col.align || col.align === 'left',
+              'text-center': col.align === 'center',
+              'text-right': col.align === 'right'
+            }">
+          {{ col.label }}
+        </th>
         }
         @if (showActions()) {
-        <th class="text-sm font-semibold text-base-content text-center w-20">Acciones</th>
+        <th class="text-sm font-semibold text-base-content text-center w-20 px-4 py-3">Acciones</th>
         }
       </tr>
     </thead>
@@ -14,7 +20,14 @@
       @for (row of data(); track $index) {
       <tr class="hover:bg-base-200/50 transition-colors">
         @for (col of columns(); track col.key) {
-        <td class="text-sm">
+        <td class="text-sm px-4 py-3 max-w-[200px]" [ngClass]="{
+              'truncate': col.type === undefined || col.type === 'text',
+              'overflow-visible': col.type === 'badge',
+              'text-left': !col.align || col.align === 'left',
+              'text-center': col.align === 'center',
+              'text-right': col.align === 'right',
+              'whitespace-nowrap': col.type !== 'text'
+            }" [title]="col.type === undefined || col.type === 'text' ? getCellValue(row, col.key) : ''">
           @switch (col.type) {
           @case ('currency') {
           <span class="font-semibold">{{ getCellValue(row, col.key) | currency : 'USD' : 'symbol' : '1.2-2' }}</span>
@@ -23,18 +36,17 @@
           {{ getCellValue(row, col.key) | date : 'dd/MM/yyyy' }}
           }
           @case ('badge') {
-          <app-badge
-            [label]="getCellValue(row, col.key)"
+          <app-badge [label]="getCellValue(row, col.key)"
             [color]="col.badgeColor ?? (col.badgeColorKey ? getCellValue(row, col.badgeColorKey) : 'ghost')"
-            [options]="col.badgeOptions ?? []"
-            (optionSelected)="onBadgeOptionSelected(col.key, row, $event)" />
+            [options]="col.badgeOptions ?? []" (optionSelected)="onBadgeOptionSelected(col.key, row, $event)" />
           }
           @case ('pill') {
-            @if (getCellValue(row, col.key) && getCellValue(row, col.key) !== '—') {
-            <span class="badge badge-primary badge-sm badge-outline font-semibold">{{ getCellValue(row, col.key) }}</span>
-            } @else {
-            <span class="text-base-content/30">—</span>
-            }
+          @if (getCellValue(row, col.key) && getCellValue(row, col.key) !== '—') {
+          <span class="badge badge-primary badge-sm badge-outline font-semibold whitespace-nowrap">{{ getCellValue(row,
+            col.key) }}</span>
+          } @else {
+          <span class="text-base-content/30">—</span>
+          }
           }
           @default {
           {{ getCellValue(row, col.key) }}
@@ -50,8 +62,7 @@
       </tr>
       } @empty {
       <tr>
-        <td [attr.colspan]="columns().length + (showActions() ? 1 : 0)"
-          class="text-center py-12 text-base-content/40">
+        <td [attr.colspan]="columns().length + (showActions() ? 1 : 0)" class="text-center py-12 text-base-content/40">
           <div class="flex flex-col items-center gap-2">
             <i class="bi bi-inbox text-4xl"></i>
             <span class="text-sm">No hay datos para mostrar</span>

@@ -1,10 +1,10 @@
 import { Component, computed, inject } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet, NgClass } from '@angular/common';
 import { DialogService } from '../../services/dialog.service';
 
 @Component({
   selector: 'app-dialog',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, NgClass],
   templateUrl: './dialog.component.html',
   styleUrls: ['./dialog.component.css'],
 })
