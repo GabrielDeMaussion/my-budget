@@ -1,5 +1,5 @@
 <div class="drawer min-h-screen">
-  <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
+  <input #drawerToggle id="my-drawer-2" type="checkbox" class="drawer-toggle" />
   <div class="drawer-content flex flex-col">
     <!-- Navbar -->
     <div class="navbar bg-base-300 w-full sticky top-0 z-10">
@@ -14,11 +14,13 @@
       <a routerLink="/home" class="mx-2 px-2 text-xl font-bold">
         <i class="bi bi-graph-up-arrow text-2xl text-primary"></i>
       </a>
-      <div class="flex-1 gap-2 flex">
-        @for (link of links; track $index) {
-        <a routerLink="{{link.route}}" class="btn btn-ghost"
-          routerLinkActive="bg-base-100 text-primary">{{link.label}}</a>
-        }
+      <div class="flex-1">
+        <div class="gap-2 hidden lg:flex">
+          @for (link of links; track $index) {
+          <a routerLink="{{link.route}}" class="btn btn-ghost"
+            routerLinkActive="bg-base-100 text-primary">{{link.label}}</a>
+          }
+        </div>
       </div>
       <div class="flex-none block">
         <ul class="menu menu-horizontal">
@@ -36,8 +38,12 @@
     <label for="my-drawer-2" aria-label="close sidebar" class="drawer-overlay"></label>
     <ul class="menu bg-base-200 min-h-full w-80 p-4">
       <!-- Sidebar content here -->
-      <li><a>Sidebar Item 1</a></li>
-      <li><a>Sidebar Item 2</a></li>
+      @for (link of links; track $index) {
+      <li>
+        <a routerLink="{{link.route}}" routerLinkActive="active text-primary"
+          (click)="closeDrawer()">{{link.label}}</a>
+      </li>
+      }
     </ul>
   </div>
 </div>

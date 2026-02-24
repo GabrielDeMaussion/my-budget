@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { SessionButtonComponent } from '../../components/session-button/session-button.component';
 import { Link } from '../../interfaces/link.interface';
 import { RouterLink, RouterLinkActive } from "@angular/router";
@@ -12,6 +12,8 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
 export class NavbarComponent implements OnInit {
   // --------------- Inyections --------------- //
 
+  // --------------- View --------------- //
+  @ViewChild('drawerToggle') drawerToggle!: ElementRef<HTMLInputElement>;
 
   // --------------- Properties --------------- //
   links: Link[] = [
@@ -23,6 +25,13 @@ export class NavbarComponent implements OnInit {
 
   // --------------- Init --------------- //
   ngOnInit() {
+  }
+
+  // --------------- Methods --------------- //
+  closeDrawer(): void {
+    if (this.drawerToggle?.nativeElement) {
+      this.drawerToggle.nativeElement.checked = false;
+    }
   }
 
 }
