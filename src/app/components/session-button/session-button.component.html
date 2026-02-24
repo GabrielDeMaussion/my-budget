@@ -27,25 +27,90 @@
 
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Email</span></label>
-      <input type="email" class="input input-sm input-bordered w-full"
-        [(ngModel)]="loginForm.email"
+      <input type="email" class="input input-sm input-bordered w-full" [(ngModel)]="loginForm.email"
         placeholder="admin@gmail.com" />
     </div>
 
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Contraseña</span></label>
-      <input type="password" class="input input-sm input-bordered w-full"
-        [(ngModel)]="loginForm.password"
-        placeholder="••••••••"
-        (keydown.enter)="onLoginSubmit()" />
+      <input type="password" class="input input-sm input-bordered w-full" [(ngModel)]="loginForm.password"
+        placeholder="••••••••" (keydown.enter)="onLoginSubmit()" />
     </div>
 
-    <div class="flex justify-end gap-2 mt-2">
-      <button class="btn btn-ghost btn-sm" (click)="onLoginCancel()">Cancelar</button>
-      <button class="btn btn-primary btn-sm" (click)="onLoginSubmit()"
-        [disabled]="!loginForm.email || !loginForm.password">
-        <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+    <div class="flex items-center justify-between mt-2">
+      <button class="btn btn-link btn-sm px-0 text-primary no-underline hover:underline" (click)="openRegisterDialog()">
+        <i class="bi bi-person-plus me-1"></i> Crear cuenta
       </button>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost btn-sm" (click)="onLoginCancel()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" (click)="onLoginSubmit()"
+          [disabled]="!loginForm.email || !loginForm.password">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Register Form Template -->
+<ng-template #registerFormTemplate>
+  <div class="flex flex-col gap-4">
+    @if (registerError()) {
+    <div class="alert alert-error text-sm py-2">
+      <i class="bi bi-exclamation-circle"></i>
+      <span>{{ registerError() }}</span>
+    </div>
+    }
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Nombre</span></label>
+        <input type="text" class="input input-sm input-bordered w-full" [(ngModel)]="registerForm.name"
+          placeholder="Juan" />
+      </div>
+
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Apellido</span></label>
+        <input type="text" class="input input-sm input-bordered w-full" [(ngModel)]="registerForm.lastName"
+          placeholder="Pérez" />
+      </div>
+    </div>
+
+    <div class="form-control">
+      <label class="label"><span class="label-text text-xs">Correo Electrónico</span></label>
+      <input type="email" class="input input-sm input-bordered w-full" [(ngModel)]="registerForm.email"
+        placeholder="juan@correo.com" />
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Contraseña</span></label>
+        <input type="password" class="input input-sm input-bordered w-full" [(ngModel)]="registerForm.password"
+          placeholder="Mín. 4 caracteres" />
+      </div>
+
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Confirmar Contraseña</span></label>
+        <input type="password" class="input input-sm input-bordered w-full" [(ngModel)]="registerForm.confirmPassword"
+          placeholder="••••••••" (keydown.enter)="onRegisterSubmit()" />
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between mt-2">
+      <button class="btn btn-link btn-sm px-0 text-base-content/60 no-underline hover:underline"
+        (click)="backToLogin()">
+        <i class="bi bi-arrow-left me-1"></i> Volver al login
+      </button>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost btn-sm" (click)="onLoginCancel()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" (click)="onRegisterSubmit()"
+          [disabled]="isRegistering() || !registerForm.name || !registerForm.email || !registerForm.password">
+          @if (isRegistering()) {
+          <span class="loading loading-spinner w-4 h-4"></span>
+          }
+          <i class="bi bi-person-plus me-1"></i> Registrarse
+        </button>
+      </div>
     </div>
   </div>
 </ng-template>

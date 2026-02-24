@@ -20,6 +20,7 @@ export class SessionButtonComponent implements OnInit {
 
   // --------------- ViewChild --------------- //
   @ViewChild('loginFormTemplate') loginFormTemplate!: TemplateRef<any>;
+  @ViewChild('registerFormTemplate') registerFormTemplate!: TemplateRef<any>;
 
   // --------------- Properties --------------- //
   isLoggedIn = computed(() => !!this.authService.authUser());
@@ -34,10 +35,15 @@ export class SessionButtonComponent implements OnInit {
   loginForm = { email: '', password: '' };
   loginError = signal(false);
 
-  // --------------- Init --------------- //
-  ngOnInit(): void {}
+  // Register form state
+  registerForm = { name: '', lastName: '', email: '', password: '', confirmPassword: '' };
+  registerError = signal('');
+  isRegistering = signal(false);
 
-  // --------------- Methods --------------- //
+  // --------------- Init --------------- //
+  ngOnInit(): void { }
+
+  // --------------- Login Methods --------------- //
   openLoginDialog(): void {
     this.loginForm = { email: '', password: '' };
     this.loginError.set(false);
@@ -65,6 +71,67 @@ export class SessionButtonComponent implements OnInit {
     this.dialogService.close();
   }
 
+  // --------------- Register Methods --------------- //
+  openRegisterDialog(): void {
+    this.dialogService.close();
+    this.registerForm = { name: '', lastName: '', email: '', password: '', confirmPassword: '' };
+    this.registerError.set('');
+    this.isRegistering.set(false);
+
+    setTimeout(() => {
+      this.dialogService.open({
+        type: 'custom',
+        title: 'Crear Cuenta',
+        templateRef: this.registerFormTemplate,
+      });
+    }, 100);
+  }
+
+  backToLogin(): void {
+    this.dialogService.close();
+    setTimeout(() => this.openLoginDialog(), 100);
+  }
+
+  onRegisterSubmit(): void {
+    this.registerError.set('');
+
+    // Validaciones
+    if (!this.registerForm.name.trim() || !this.registerForm.lastName.trim()) {
+      this.registerError.set('Nombre y apellido son obligatorios.');
+      return;
+    }
+    if (!this.registerForm.email.trim()) {
+      this.registerError.set('El correo electrónico es obligatorio.');
+      return;
+    }
+    if (this.registerForm.password.length < 4) {
+      this.registerError.set('La contraseña debe tener al menos 4 caracteres.');
+      return;
+    }
+    if (this.registerForm.password !== this.registerForm.confirmPassword) {
+      this.registerError.set('Las contraseñas no coinciden.');
+      return;
+    }
+
+    this.isRegistering.set(true);
+    this.authService
+      .registerUser({
+        name: this.registerForm.name.trim(),
+        lastName: this.registerForm.lastName.trim(),
+        email: this.registerForm.email.trim().toLowerCase(),
+        password: this.registerForm.password,
+      })
+      .subscribe((result) => {
+        this.isRegistering.set(false);
+        if (result.success) {
+          this.dialogService.close();
+        } else {
+          this.registerError.set(result.error || 'Error al registrar usuario.');
+        }
+      });
+  }
+
+  // --------------- Session Methods --------------- //
   logout(): void {
     this.authService.logout();
   }

@@ -1,18 +1,16 @@
-import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { map, Observable, of, tap } from 'rxjs';
+import { from, map, Observable, of } from 'rxjs';
 
-import { environment } from '../../environments/environment';
 import { AuthTokenPayload } from '../interfaces/authTokenPayload.interface';
 import { User } from '../interfaces/user.interface';
+import { DatabaseService } from './database.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   // --------------- Injects --------------- //
-  private readonly apiUrl = environment.apiUrl;
-  private readonly http = inject(HttpClient);
+  private readonly db = inject(DatabaseService);
 
   // --------------- Properties --------------- //
   private authToken = signal<string | null>(localStorage.getItem('authToken'));
@@ -35,44 +33,71 @@ export class AuthService {
 
   // --------------- Methods --------------- //
 
-  /** Login con credenciales contra json-server */
+  /** Login con credenciales contra IndexedDB */
   loginWithCredentials(email: string, password: string): Observable<boolean> {
-    return this.http
-      .get<User[]>(`${this.apiUrl}/users?email=${email}&password=${password}`)
-      .pipe(
-        map((users) => {
-          if (users.length > 0) {
-            const user = users[0];
-            const token = this.createMockToken(user);
-            this.setAuthToken(token);
-            // Aplicar tema del usuario
-            if (user.theme) {
-              localStorage.setItem('app-theme', user.theme);
-              document.documentElement.setAttribute('data-theme', user.theme);
-            }
-            return true;
+    return from(this.db.getOneByIndex<User>('users', 'email', email)).pipe(
+      map((user) => {
+        if (user && user.password === password) {
+          const token = this.createMockToken(user);
+          this.setAuthToken(token);
+          // Aplicar tema del usuario
+          if (user.theme) {
+            localStorage.setItem('app-theme', user.theme);
+            document.documentElement.setAttribute('data-theme', user.theme);
           }
-          return false;
-        })
-      );
+          return true;
+        }
+        return false;
+      })
+    );
+  }
+
+  /** Registrar un nuevo usuario en IndexedDB */
+  registerUser(data: { name: string; lastName: string; email: string; password: string }): Observable<{ success: boolean; error?: string }> {
+    return from(
+      (async () => {
+        // Verificar si el email ya existe
+        const existing = await this.db.getOneByIndex<User>('users', 'email', data.email);
+        if (existing) {
+          return { success: false, error: 'Ya existe una cuenta con ese correo electrónico.' };
+        }
+
+        // Crear usuario
+        const newUser = await this.db.add<User>('users', {
+          email: data.email,
+          password: data.password,
+          name: data.name,
+          lastName: data.lastName,
+          theme: 'dark',
+        } as User);
+
+        // Auto-login después del registro
+        const token = this.createMockToken(newUser);
+        this.setAuthToken(token);
+        localStorage.setItem('app-theme', 'dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+
+        return { success: true };
+      })()
+    );
   }
 
   logout(): void {
     this.setAuthToken(null);
   }
 
-  /** Obtiene la configuración del usuario actual */
+  /** Obtiene la configuración del usuario actual desde IndexedDB */
   getUserSettings(): Observable<User | null> {
     const user = this.authUser();
     if (!user) return of(null);
-    return this.http.get<User>(`${this.apiUrl}/users/${user.sub}`);
+    return from(this.db.getById<User>('users', user.sub));
   }
 
-  /** Actualiza la configuración del usuario */
+  /** Actualiza la configuración del usuario en IndexedDB */
   updateUserSettings(data: Partial<User>): Observable<User | null> {
     const user = this.authUser();
     if (!user) return of(null);
-    return this.http.patch<User>(`${this.apiUrl}/users/${user.sub}`, data);
+    return from(this.db.update<User>('users', user.sub, data));
   }
 
   // --------------- Helpers --------------- //

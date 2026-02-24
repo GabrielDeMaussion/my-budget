@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
 })
 export class DatabaseService {
     private dbName = 'MyBudgetDB';
-    private dbVersion = 1;
+    private dbVersion = 2;
     private db: IDBDatabase | null = null;
 
     private initPromise: Promise<IDBDatabase>;
@@ -31,6 +31,10 @@ export class DatabaseService {
                 if (!db.objectStoreNames.contains('paymentInstances')) {
                     const instancesStore = db.createObjectStore('paymentInstances', { keyPath: 'id', autoIncrement: true });
                     instancesStore.createIndex('paymentId', 'paymentId', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('users')) {
+                    const usersStore = db.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
+                    usersStore.createIndex('email', 'email', { unique: true });
                 }
             };
 
@@ -62,6 +66,18 @@ export class DatabaseService {
             await this.add('paymentCategories', { id: 1, value: 'Salario' });
             await this.add('paymentCategories', { id: 2, value: 'Alimentación' });
             await this.add('paymentCategories', { id: 3, value: 'Servicios' });
+        }
+
+        const users = await this.getAll('users');
+        if (users.length === 0) {
+            await this.add('users', {
+                id: 1,
+                email: 'admin@gmail.com',
+                password: 'admin',
+                name: 'Admin',
+                lastName: 'Usuario',
+                theme: 'dark'
+            });
         }
     }
 
@@ -101,6 +117,20 @@ export class DatabaseService {
             const request = index.getAll(value); // Assuming value matches exactly
 
             request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /** Busca un único registro por índice. Retorna null si no existe. */
+    async getOneByIndex<T>(storeName: string, indexName: string, value: any): Promise<T | null> {
+        const db = await this.getDb();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
+            const index = store.index(indexName);
+            const request = index.get(value);
+
+            request.onsuccess = () => resolve(request.result ?? null);
             request.onerror = () => reject(request.error);
         });
     }
