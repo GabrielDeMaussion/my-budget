@@ -1,11 +1,11 @@
-<div class="rounded-lg border border-base-300 flex-1 min-h-0 overflow-visible">
+<div class="rounded-lg border border-base-300 flex-1 min-h-0 overflow-auto">
   <table class="table table-zebra w-full">
     <thead class="sticky top-0 z-10">
       <tr class="bg-base-300">
         @for (col of columns(); track col.key) {
         <th class="text-sm font-semibold text-base-content whitespace-nowrap px-4 py-3" [ngClass]="{
-              'text-left': !col.align || col.align === 'left',
-              'text-center': col.align === 'center',
+              'text-left': col.align === 'left',
+              'text-center': !col.align || col.align === 'center',
               'text-right': col.align === 'right'
             }">
           {{ col.label }}
@@ -23,8 +23,8 @@
         <td class="text-sm px-4 py-3 max-w-[200px]" [ngClass]="{
               'truncate': col.type === undefined || col.type === 'text',
               'overflow-visible': col.type === 'badge',
-              'text-left': !col.align || col.align === 'left',
-              'text-center': col.align === 'center',
+              'text-left': col.align === 'left',
+              'text-center': !col.align || col.align === 'center',
               'text-right': col.align === 'right',
               'whitespace-nowrap': col.type !== 'text'
             }" [title]="col.type === undefined || col.type === 'text' ? getCellValue(row, col.key) : ''">

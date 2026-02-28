@@ -49,26 +49,17 @@
       <div class="flex flex-col sm:flex-row gap-3">
         <label class="input input-sm input-bordered flex items-center gap-2 flex-1">
           <i class="bi bi-search text-base-content/40"></i>
-          <input type="text" class="grow" placeholder="Buscar por descripción, categoría..." [ngModel]="searchQuery()"
+          <input type="text" class="grow" placeholder="Buscar en todos los campos..." [ngModel]="searchQuery()"
             (ngModelChange)="onSearchChange($event)" />
         </label>
 
-        <select class="select select-sm select-bordered w-full sm:w-44" [ngModel]="selectedCategoryId() ?? ''"
-          (ngModelChange)="onCategoryChange($event)">
-          <option value="">Todas las categorías</option>
-          @for (cat of expenseCategories(); track cat.id) {
-          <option [value]="cat.id">{{ cat.value }}</option>
-          }
-        </select>
+        <app-searchable-select [options]="categorySelectOptions()" [value]="selectedCategoryId() ?? ''"
+          (valueChange)="onCategoryChange($event ? +$event : null)" placeholder="Buscar categoría..."
+          emptyLabel="Todas las categorías" widthClass="w-full sm:w-44" />
 
-        <select class="select select-sm select-bordered w-full sm:w-36" [ngModel]="selectedState() ?? ''"
-          (ngModelChange)="onStateChange($event)">
-          <option value="">Todos los estados</option>
-          <option value="PAID">Pagado</option>
-          <option value="PENDING">Pendiente</option>
-          <option value="CANCELLED">Cancelado</option>
-          <option value="OVERDUE">Vencido</option>
-        </select>
+        <app-searchable-select [options]="stateSelectOptions" [value]="selectedState() ?? ''"
+          (valueChange)="onStateChange($event ? $event.toString() : null)" placeholder="Buscar estado..."
+          emptyLabel="Todos los estados" widthClass="w-full sm:w-36" />
 
         <button class="btn btn-sm btn-ghost gap-1" (click)="toggleSort()"
           [class.btn-active]="sortDirection() === 'desc'">

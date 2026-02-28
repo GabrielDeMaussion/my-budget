@@ -1,6 +1,6 @@
-<div class="drawer min-h-screen">
+<div class="drawer h-screen overflow-hidden">
   <input #drawerToggle id="my-drawer-2" type="checkbox" class="drawer-toggle" />
-  <div class="drawer-content flex flex-col">
+  <div class="drawer-content flex flex-col h-screen overflow-hidden">
     <!-- Navbar -->
     <div class="navbar bg-base-300 w-full sticky top-0 z-10">
       <div class="flex-none lg:hidden">
@@ -30,7 +30,7 @@
       </div>
     </div>
     <!-- Page content here -->
-    <section class="p-4 flex-1 min-h-0 flex flex-col">
+    <section class="p-4 flex-1 min-h-0 overflow-y-auto w-full">
       <ng-content />
     </section>
   </div>
@@ -40,8 +40,7 @@
       <!-- Sidebar content here -->
       @for (link of links; track $index) {
       <li>
-        <a routerLink="{{link.route}}" routerLinkActive="active text-primary"
-          (click)="closeDrawer()">{{link.label}}</a>
+        <a routerLink="{{link.route}}" routerLinkActive="active text-primary" (click)="closeDrawer()">{{link.label}}</a>
       </li>
       }
     </ul>

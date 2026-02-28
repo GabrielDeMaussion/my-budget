@@ -26,7 +26,6 @@ import { getCategoryDisplayName } from '../../utils/category.util';
         CommonModule,
         FormsModule,
         DataTableComponent,
-        BadgeComponent,
         PaymentDetailComponent,
     ],
     templateUrl: './payment-plans.component.html',

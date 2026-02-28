@@ -2,11 +2,6 @@ import { Component, input, output, signal, HostListener, OnDestroy } from '@angu
 
 /**
  * Interfaz para los items del menú desplegable genérico.
- *
- * Atributos:
- * - id: Identificador único del item (emitido al hacer click)
- * - label: Texto visible del item
- * - icon: Clase de Bootstrap Icons (opcional, sin prefijo "bi-")
  */
 export interface MenuItem {
   id: string;
@@ -14,12 +9,15 @@ export interface MenuItem {
   icon?: string;
 }
 
+// Global tracker: only one menu open at a time
+let activeMenuInstance: MenuComponent | null = null;
+
 @Component({
   selector: 'app-menu',
   templateUrl: './menu.component.html',
   styleUrls: ['./menu.component.css'],
 })
-export class MenuComponent {
+export class MenuComponent implements OnDestroy {
   // --------------- Inputs --------------- //
   menuTitle = input<string>('');
   icon = input<string>('');
@@ -35,34 +33,59 @@ export class MenuComponent {
 
   // --------------- Lifecycle --------------- //
   constructor() {
-    // Escucha scrolls en fase de captura para cerrar menús si el contenedor hace scroll
     window.addEventListener('scroll', this.scrollListener, true);
   }
 
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.scrollListener, true);
+    if (activeMenuInstance === this) {
+      activeMenuInstance = null;
+    }
   }
 
-  private scrollListener = (event: Event): void => {
+  private scrollListener = (): void => {
     if (this.isOpen()) {
       this.isOpen.set(false);
+      if (activeMenuInstance === this) activeMenuInstance = null;
     }
   }
 
   // --------------- Methods --------------- //
   toggleMenu(event: MouseEvent): void {
     event.stopPropagation();
+
     if (this.isOpen()) {
       this.isOpen.set(false);
+      activeMenuInstance = null;
       return;
     }
 
+    // Close any other open menu first
+    if (activeMenuInstance && activeMenuInstance !== this) {
+      activeMenuInstance.isOpen.set(false);
+    }
+    activeMenuInstance = this;
+
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const menuWidth = 208; // 52 * 4px = 208px (Clase w-52)
+    const menuWidth = 208; // w-52 = 13rem = 208px
+    const menuHeight = this.items().length * 44 + 24; // approx height per item + padding
+
     let left = rect.right - menuWidth;
     if (left < 10) left = 10;
 
-    this.menuTop.set(rect.bottom + 4);
+    // Check if menu would overflow bottom of viewport → open upward
+    const viewportHeight = window.innerHeight;
+    let top: number;
+    if (rect.bottom + menuHeight + 8 > viewportHeight) {
+      // Open upward
+      top = rect.top - menuHeight - 4;
+      if (top < 10) top = 10;
+    } else {
+      // Open downward
+      top = rect.bottom + 4;
+    }
+
+    this.menuTop.set(top);
     this.menuLeft.set(left);
     this.isOpen.set(true);
   }
@@ -71,6 +94,7 @@ export class MenuComponent {
   onDocumentClick(): void {
     if (this.isOpen()) {
       this.isOpen.set(false);
+      if (activeMenuInstance === this) activeMenuInstance = null;
     }
   }
 
@@ -78,5 +102,6 @@ export class MenuComponent {
     event.stopPropagation();
     this.itemClicked.emit(item.id);
     this.isOpen.set(false);
+    activeMenuInstance = null;
   }
 }

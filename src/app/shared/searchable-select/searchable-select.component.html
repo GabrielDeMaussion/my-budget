@@ -1,0 +1,56 @@
+<div #container class="relative inline-block {{ widthClass() }}" (click)="$event.stopPropagation()">
+    <!-- Main Button -->
+    <button type="button" class="select select-sm select-bordered w-full flex items-center justify-between"
+        [class.select-primary]="isOpen()" (click)="toggleOpen()">
+        <span class="truncate block text-left" [class.text-base-content]="value() !== ''"
+            [class.text-base-content]="value() === ''">
+            {{ selectedLabel() }}
+        </span>
+    </button>
+</div>
+
+<!-- Dropdown Portal (Fixed Position) -->
+@if (isOpen()) {
+<div class="searchable-dropdown-menu fixed z-[9999] bg-base-100 rounded-box shadow-xl border border-base-300 flex flex-col pointer-events-auto"
+    [class.origin-bottom]="openUpward()" [class.-translate-y-full]="openUpward()" [style.top.px]="dropdownTop()"
+    [style.left.px]="dropdownLeft()" [style.width.px]="dropdownWidth()">
+
+    <!-- Search Input -->
+    <div class="p-2 border-b border-base-200">
+        <div class="relative flex items-center w-full">
+            <i class="bi bi-search absolute left-3 text-base-content/40 text-sm"></i>
+            <input #searchInput type="text" class="input input-sm w-full pl-8 focus:outline-none"
+                [placeholder]="placeholder()" [(ngModel)]="searchQuery" (click)="$event.stopPropagation()" />
+        </div>
+    </div>
+
+    <!-- Options List -->
+    <ul class="menu p-2 overflow-y-auto max-h-[250px] w-full flex-nowrap block" (click)="$event.stopPropagation()">
+        <!-- "Todos" or clear option -->
+        <li>
+            <a [class.active]="value() === ''" (click)="selectOption('')" class="truncate justify-between">
+                <span class="truncate">{{ emptyLabel() }}</span>
+                @if (value() === '') {
+                <i class="bi bi-check2 text-primary font-bold"></i>
+                }
+            </a>
+        </li>
+
+        @for (opt of filteredOptions(); track opt.value) {
+        <li>
+            <a [class.active]="value() === opt.value" (click)="selectOption(opt.value)"
+                class="truncate justify-between">
+                <span class="truncate">{{ opt.label }}</span>
+                @if (value() === opt.value) {
+                <i class="bi bi-check2 text-primary font-bold"></i>
+                }
+            </a>
+        </li>
+        } @empty {
+        <li class="p-3 text-center text-sm text-base-content/50">
+            Sin resultados
+        </li>
+        }
+    </ul>
+</div>
+}

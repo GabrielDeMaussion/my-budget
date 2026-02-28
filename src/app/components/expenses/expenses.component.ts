@@ -14,6 +14,7 @@ import { BadgeOption } from '../../shared/badge/badge.component';
 import { PaymentFormComponent, PaymentFormResult } from '../payment-form/payment-form.component';
 import { PaymentDetailComponent } from '../payment-detail/payment-detail.component';
 import { InstanceEditFormComponent, InstanceEditResult } from '../instance-edit-form/instance-edit-form.component';
+import { SearchableSelectComponent, SelectOption } from '../../shared/searchable-select/searchable-select.component';
 import {
   PaymentInstanceState,
   getInstanceStateLabel,
@@ -34,7 +35,7 @@ import { getCategoryDisplayName, getParentCategoryName, getParentCategoryId } fr
 
 @Component({
   selector: 'app-expenses',
-  imports: [CommonModule, FormsModule, DataTableComponent, PaymentFormComponent, PaymentDetailComponent, InstanceEditFormComponent],
+  imports: [CommonModule, FormsModule, DataTableComponent, PaymentFormComponent, PaymentDetailComponent, InstanceEditFormComponent, SearchableSelectComponent],
   templateUrl: './expenses.component.html',
   styleUrls: ['./expenses.component.css'],
 })
@@ -165,7 +166,11 @@ export class ExpensesComponent implements OnInit {
         (r) =>
           r.description.toLowerCase().includes(query) ||
           r.categoryName.toLowerCase().includes(query) ||
-          r.comments.toLowerCase().includes(query)
+          r.comments.toLowerCase().includes(query) ||
+          r.stateLabel.toLowerCase().includes(query) ||
+          r.installmentInfo.toLowerCase().includes(query) ||
+          String(r.amount).includes(query) ||
+          r.paymentDate.includes(query)
       );
     }
     if (catId) rows = rows.filter((r) => r.parentCategoryId === catId);
@@ -192,6 +197,20 @@ export class ExpensesComponent implements OnInit {
     );
     return this.categories().filter((c) => !c.parentId && catIds.has(c.id!));
   });
+
+  categorySelectOptions = computed<SelectOption[]>(() => {
+    return this.expenseCategories().map(c => ({
+      value: c.id!,
+      label: c.value
+    }));
+  });
+
+  stateSelectOptions: SelectOption[] = [
+    { value: 'PAID', label: 'Pagado' },
+    { value: 'PENDING', label: 'Pendiente' },
+    { value: 'CANCELLED', label: 'Cancelado' },
+    { value: 'OVERDUE', label: 'Vencido' },
+  ];
 
   // --------------- Init --------------- //
   ngOnInit(): void {
@@ -250,12 +269,12 @@ export class ExpensesComponent implements OnInit {
     this.searchQuery.set(value);
   }
 
-  onCategoryChange(value: string): void {
+  onCategoryChange(value: string | number | null): void {
     this.selectedCategoryId.set(value ? Number(value) : null);
   }
 
-  onStateChange(value: string): void {
-    this.selectedState.set(value || null);
+  onStateChange(value: string | number | null): void {
+    this.selectedState.set(value ? String(value) : null);
   }
 
   toggleSort(): void {
