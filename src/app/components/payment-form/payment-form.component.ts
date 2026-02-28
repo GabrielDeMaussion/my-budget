@@ -1,7 +1,7 @@
 import { Component, computed, ElementRef, HostListener, inject, input, OnInit, output, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
+import { firstValueFrom } from 'rxjs';
 import { PaymentCategory } from '../../interfaces/payment-category.interface';
 import { PaymentFrequency, PaymentFrequencyLabels } from '../../interfaces/enums/payment-frequency.enum';
 import { PaymentState } from '../../interfaces/enums/payment-state.enum';
@@ -281,6 +281,7 @@ export class PaymentFormComponent implements OnInit {
     this.categoryDropdownOpen.set(!isOpen);
     if (!isOpen) {
       this.categorySearch.set('');
+      this.cancelNewCategory();
     }
   }
 
@@ -293,6 +294,65 @@ export class PaymentFormComponent implements OnInit {
     const target = event.target as HTMLElement;
     if (!target.closest('.category-dropdown-container')) {
       this.categoryDropdownOpen.set(false);
+      this.cancelNewCategory();
     }
+  }
+
+  // --------------- Inline Category Creation --------------- //
+  isCreatingCategory = signal(false);
+  newCategoryName = signal('');
+  newCategoryParentId = signal<number | null>(null);
+
+  newCategoryError = computed(() => {
+    const name = this.newCategoryName().trim().toLowerCase();
+    if (!name) return '';
+    const parentId = this.newCategoryParentId();
+
+    const duplicate = this.categories().some((c) => {
+      const isSameName = c.value.toLowerCase() === name;
+      const existingParent = c.parentId || null;
+      return isSameName && existingParent === parentId;
+    });
+
+    if (duplicate) {
+      return 'Ya existe una categoría con este nombre en este nivel.';
+    }
+    return '';
+  });
+
+  get canSaveNewCategory(): boolean {
+    return this.newCategoryName().trim().length > 0 && !this.newCategoryError();
+  }
+
+  openNewCategoryForm(): void {
+    this.isCreatingCategory.set(true);
+    this.newCategoryName.set(this.categorySearch().trim());
+    this.newCategoryParentId.set(null);
+  }
+
+  cancelNewCategory(): void {
+    this.isCreatingCategory.set(false);
+    this.newCategoryName.set('');
+    this.newCategoryParentId.set(null);
+  }
+
+  saveNewCategory(): void {
+    if (!this.canSaveNewCategory) return;
+    const name = this.newCategoryName().trim();
+    const parentId = this.newCategoryParentId();
+
+    firstValueFrom(
+      this.paymentService.createPaymentCategory({ value: name, parentId })
+    ).then((newCat: PaymentCategory) => {
+      this.paymentService.getPaymentCategories().subscribe((cats) => {
+        this.categories.set(cats);
+        this.form.paymentCategoryId = newCat.id!;
+        this.categoryDropdownOpen.set(false);
+        this.categorySearch.set('');
+        this.cancelNewCategory();
+      });
+    }).catch((err: any) => {
+      console.error('Error creando categoría:', err);
+    });
   }
 }
