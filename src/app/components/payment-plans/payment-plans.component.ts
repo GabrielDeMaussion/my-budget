@@ -67,6 +67,25 @@ export class PaymentPlansComponent implements OnInit {
     // Edit state (para instancias dentro del detalle)
     editingInstance = signal<any>(null);
 
+    /** Monto total ya pagado de las instancias del plan seleccionado */
+    paidTotal = computed(() => {
+        return this.workingInstances()
+            .filter((i) => i.state === PaymentInstanceState.PAID)
+            .reduce((sum, i) => sum + (i.amount || 0), 0);
+    });
+
+    /** Monto restante por pagar */
+    remainingTotal = computed(() => {
+        const payment = this.selectedPayment();
+        if (!payment) return 0;
+        return +(payment.totalAmount - this.paidTotal()).toFixed(2);
+    });
+
+    /** Cantidad de instancias no pagadas */
+    unpaidCount = computed(() => {
+        return this.workingInstances().filter((i) => i.state !== PaymentInstanceState.PAID).length;
+    });
+
     // --------------- Computeds --------------- //
     /** Planes filtrados: solo recurrentes CON cuotas finitas (excluye indefinidos) */
     filteredPlans = computed(() => {
@@ -276,7 +295,7 @@ export class PaymentPlansComponent implements OnInit {
 
         const newInstance = {
             paymentId: payment.id!,
-            amount: payment.totalAmount,
+            amount: 0, // Will be recalculated
             paymentDate: nextDate,
             installmentNumber: current.length + 1,
             state: PaymentInstanceState.PENDING,
@@ -311,21 +330,34 @@ export class PaymentPlansComponent implements OnInit {
         });
     }
 
+    /**
+     * Recalcula montos solo para instancias NO pagadas.
+     * Las instancias PAID se mantienen intactas.
+     * El monto restante (total - pagado) se distribuye entre las no-pagadas.
+     */
     private recalculateAmountsIfFinite(arr: any[]): void {
         const payment = this.selectedPayment();
         // Solo para planes con límite de cuotas (finitos)
         if (!payment || (!payment.frequency || !payment.installments)) return;
 
         const total = payment.totalAmount || 0;
-        const count = arr.length;
-        if (count > 0) {
-            const perInstance = +(total / count).toFixed(2);
-            arr.forEach((inst, i) => {
-                // Asignar el resto exacto a la última cuota para evitar pérdida por redondeo
-                if (i === arr.length - 1) {
-                    inst.amount = +(total - (perInstance * (count - 1))).toFixed(2);
+        const paidSum = arr
+            .filter((i) => i.state === PaymentInstanceState.PAID)
+            .reduce((sum, i) => sum + (i.amount || 0), 0);
+        const remaining = +(total - paidSum).toFixed(2);
+        const unpaid = arr.filter((i) => i.state !== PaymentInstanceState.PAID);
+        const unpaidCount = unpaid.length;
+
+        if (unpaidCount > 0) {
+            const perInstance = +(remaining / unpaidCount).toFixed(2);
+            let distributed = 0;
+            unpaid.forEach((inst, i) => {
+                if (i === unpaid.length - 1) {
+                    // Last unpaid gets the remainder to avoid rounding loss
+                    inst.amount = +(remaining - distributed).toFixed(2);
                 } else {
                     inst.amount = perInstance;
+                    distributed += perInstance;
                 }
             });
         }
