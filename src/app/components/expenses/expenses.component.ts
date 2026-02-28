@@ -30,7 +30,7 @@ import {
 } from '../../utils/date-navigation.util';
 import { PaymentService } from '../../services/payment.service';
 import { generateFiniteInstanceDates, generateIndefiniteInstanceDatesFor5Years } from '../../utils/installment.util';
-import { getCategoryDisplayName } from '../../utils/category.util';
+import { getCategoryDisplayName, getParentCategoryName, getParentCategoryId } from '../../utils/category.util';
 
 @Component({
   selector: 'app-expenses',
@@ -150,7 +150,8 @@ export class ExpensesComponent implements OnInit {
       return {
         ...inst,
         description: payment?.comments ?? '—',
-        categoryName: getCategoryDisplayName(payment?.paymentCategoryId, this.categories()),
+        categoryName: getParentCategoryName(payment?.paymentCategoryId, this.categories()),
+        parentCategoryId: getParentCategoryId(payment?.paymentCategoryId, this.categories()) ?? 0,
         paymentCategoryId: payment?.paymentCategoryId ?? 0,
         stateLabel: getInstanceStateLabel(inst.state),
         stateColor: getInstanceStateColor(inst.state),
@@ -166,7 +167,7 @@ export class ExpensesComponent implements OnInit {
           r.comments.toLowerCase().includes(query)
       );
     }
-    if (catId) rows = rows.filter((r) => r.paymentCategoryId === catId);
+    if (catId) rows = rows.filter((r) => r.parentCategoryId === catId);
     if (state) rows = rows.filter((r) => r.state === state);
 
     rows.sort((a, b) => {
@@ -182,9 +183,13 @@ export class ExpensesComponent implements OnInit {
     const catIds = new Set(
       this.payments()
         .filter((p) => p.paymentTypeId === this.EXPENSE_TYPE_ID)
-        .map((p) => p.paymentCategoryId)
+        .map((p) => {
+          // Get the root/parent category id
+          return getParentCategoryId(p.paymentCategoryId, this.categories());
+        })
+        .filter((id): id is number => id !== undefined)
     );
-    return this.categories().filter((c) => catIds.has(c.id!));
+    return this.categories().filter((c) => !c.parentId && catIds.has(c.id!));
   });
 
   // --------------- Init --------------- //

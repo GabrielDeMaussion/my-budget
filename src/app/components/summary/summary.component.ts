@@ -24,7 +24,7 @@ import {
 } from '../../utils/date-navigation.util';
 import { PaymentService } from '../../services/payment.service';
 import { AuthService } from '../../services/auth.service';
-import { getCategoryDisplayName } from '../../utils/category.util';
+import { getCategoryDisplayName, getParentCategoryName, getSubcategoryName, getParentCategoryId } from '../../utils/category.util';
 
 export type DetailView = 'table' | 'charts';
 export type ChartMetric = 'category' | 'state' | 'type';
@@ -56,6 +56,7 @@ export class SummaryComponent implements OnInit, AfterViewInit {
     { key: 'typeName', label: 'Tipo', type: 'badge', badgeColorKey: 'typeColor', align: 'center' },
     { key: 'description', label: 'Descripción', align: 'left' },
     { key: 'categoryName', label: 'Categoría', align: 'left' },
+    { key: 'subcategoryName', label: 'Subcategoría', align: 'left' },
     { key: 'amount', label: 'Monto', type: 'currency', align: 'right' },
     { key: 'installmentInfo', label: 'Cuota', type: 'pill', align: 'center' },
     { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor', align: 'center' },
@@ -90,14 +91,20 @@ export class SummaryComponent implements OnInit, AfterViewInit {
   referenceDate = signal(new Date());
   searchQuery = signal('');
   selectedType = signal<string | null>(null);
+  selectedCategoryId = signal<number | null>(null);
+  selectedSubcategoryId = signal<number | null>(null);
   sortDirection = signal<'asc' | 'desc'>('asc');
 
   // Detail view toggle
   detailView = signal<DetailView>('table');
   chartMetric = signal<ChartMetric>('category');
   chartTypeFilter = signal<'all' | 'income' | 'expense'>('all');
+  chartCategoryFilter = signal<number | null>(null);
+  chartSubcategoryFilter = signal<number | null>(null);
   trendMetric = signal<TrendMetric>('amount');
   trendTypeFilter = signal<'all' | 'income' | 'expense'>('all');
+  trendCategoryFilter = signal<number | null>(null);
+  trendSubcategoryFilter = signal<number | null>(null);
 
   // Canvas refs
   @ViewChild('donutCanvas') donutCanvas!: ElementRef<HTMLCanvasElement>;
@@ -125,6 +132,8 @@ export class SummaryComponent implements OnInit, AfterViewInit {
   tableData = computed(() => {
     const query = this.searchQuery().toLowerCase();
     const typeFilter = this.selectedType();
+    const catId = this.selectedCategoryId();
+    const subCatId = this.selectedSubcategoryId();
     const direction = this.sortDirection();
 
     let rows = this.filteredInstances().map((inst) => {
@@ -145,7 +154,10 @@ export class SummaryComponent implements OnInit, AfterViewInit {
       return {
         ...inst,
         description: payment?.comments ?? '—',
-        categoryName: getCategoryDisplayName(payment?.paymentCategoryId, this.categories()),
+        categoryName: getParentCategoryName(payment?.paymentCategoryId, this.categories()),
+        subcategoryName: getSubcategoryName(payment?.paymentCategoryId, this.categories()),
+        parentCategoryId: getParentCategoryId(payment?.paymentCategoryId, this.categories()) ?? 0,
+        paymentCategoryId: payment?.paymentCategoryId ?? 0,
         typeName: isIncome ? 'Ingreso' : 'Gasto',
         typeColor: isIncome ? 'success' : 'error',
         paymentTypeId: payment?.paymentTypeId ?? 0,
@@ -160,6 +172,7 @@ export class SummaryComponent implements OnInit, AfterViewInit {
         (r) =>
           r.description.toLowerCase().includes(query) ||
           r.categoryName.toLowerCase().includes(query) ||
+          r.subcategoryName.toLowerCase().includes(query) ||
           r.typeName.toLowerCase().includes(query)
       );
     }
@@ -167,6 +180,8 @@ export class SummaryComponent implements OnInit, AfterViewInit {
       const typeId = typeFilter === 'income' ? this.INCOME_TYPE_ID : this.EXPENSE_TYPE_ID;
       rows = rows.filter((r) => r.paymentTypeId === typeId);
     }
+    if (catId) rows = rows.filter((r) => r.parentCategoryId === catId);
+    if (subCatId) rows = rows.filter((r) => r.paymentCategoryId === subCatId);
 
     rows.sort((a, b) => {
       const diff = a.paymentDate.localeCompare(b.paymentDate);
@@ -191,6 +206,37 @@ export class SummaryComponent implements OnInit, AfterViewInit {
   balance = computed(() => this.totalIncome() - this.totalExpense());
   balanceColor = computed(() => (this.balance() >= 0 ? 'text-success' : 'text-error'));
 
+  /** Root categories used in the data (for filter dropdown) */
+  rootCategories = computed(() => {
+    const catIds = new Set(
+      this.payments()
+        .map((p) => getParentCategoryId(p.paymentCategoryId, this.categories()))
+        .filter((id): id is number => id !== undefined)
+    );
+    return this.categories().filter((c) => !c.parentId && catIds.has(c.id!));
+  });
+
+  /** Subcategories filtered by selected parent category */
+  filteredSubcategories = computed(() => {
+    const parentId = this.selectedCategoryId();
+    if (!parentId) return [];
+    return this.categories().filter((c) => c.parentId === parentId);
+  });
+
+  /** Subcategories for chart filters - filtered by chart category */
+  chartFilteredSubcategories = computed(() => {
+    const parentId = this.chartCategoryFilter();
+    if (!parentId) return [];
+    return this.categories().filter((c) => c.parentId === parentId);
+  });
+
+  /** Subcategories for trend filters - filtered by trend category */
+  trendFilteredSubcategories = computed(() => {
+    const parentId = this.trendCategoryFilter();
+    if (!parentId) return [];
+    return this.categories().filter((c) => c.parentId === parentId);
+  });
+
   // --------------- Chart Data Computeds --------------- //
 
   /** Data for the donut/pie chart */
@@ -198,19 +244,39 @@ export class SummaryComponent implements OnInit, AfterViewInit {
     const rows = this.filteredInstances();
     const metric = this.chartMetric();
     const typeFilter = this.chartTypeFilter();
+    const catFilter = this.chartCategoryFilter();
+    const subCatFilter = this.chartSubcategoryFilter();
 
     let filtered = rows.map(inst => {
       const payment = this.payments().find(p => p.id === inst.paymentId);
-      return { ...inst, payment, categoryName: getCategoryDisplayName(payment?.paymentCategoryId, this.categories()), paymentTypeId: payment?.paymentTypeId ?? 0 };
+      return {
+        ...inst,
+        payment,
+        categoryName: getParentCategoryName(payment?.paymentCategoryId, this.categories()),
+        subcategoryName: getSubcategoryName(payment?.paymentCategoryId, this.categories()),
+        parentCategoryId: getParentCategoryId(payment?.paymentCategoryId, this.categories()) ?? 0,
+        paymentCategoryId: payment?.paymentCategoryId ?? 0,
+        paymentTypeId: payment?.paymentTypeId ?? 0,
+      };
     });
 
     if (typeFilter === 'income') filtered = filtered.filter(r => r.paymentTypeId === this.INCOME_TYPE_ID);
     if (typeFilter === 'expense') filtered = filtered.filter(r => r.paymentTypeId === this.EXPENSE_TYPE_ID);
+    if (catFilter) filtered = filtered.filter(r => r.parentCategoryId === catFilter);
+    if (subCatFilter) filtered = filtered.filter(r => r.paymentCategoryId === subCatFilter);
 
     const groups: Record<string, number> = {};
 
     if (metric === 'category') {
-      filtered.forEach(r => { groups[r.categoryName] = (groups[r.categoryName] || 0) + r.amount; });
+      // If a category is selected but no subcategory, show breakdown by subcategories
+      if (catFilter && !subCatFilter) {
+        filtered.forEach(r => {
+          const label = r.subcategoryName !== '—' ? r.subcategoryName : r.categoryName;
+          groups[label] = (groups[label] || 0) + r.amount;
+        });
+      } else {
+        filtered.forEach(r => { groups[r.categoryName] = (groups[r.categoryName] || 0) + r.amount; });
+      }
     } else if (metric === 'state') {
       filtered.forEach(r => {
         const label = getInstanceStateLabel(r.state);
@@ -232,8 +298,11 @@ export class SummaryComponent implements OnInit, AfterViewInit {
   trendData = computed(() => {
     const metric = this.trendMetric();
     const typeFilter = this.trendTypeFilter();
+    const catFilter = this.trendCategoryFilter();
+    const subCatFilter = this.trendSubcategoryFilter();
     const allInstances = this.allInstances();
     const payments = this.payments();
+    const categories = this.categories();
 
     // Generate last 6 months labels
     const months: { label: string; start: string; end: string }[] = [];
@@ -257,8 +326,16 @@ export class SummaryComponent implements OnInit, AfterViewInit {
 
       let enriched = monthInstances.map(inst => {
         const payment = payments.find(p => p.id === inst.paymentId);
-        return { ...inst, paymentTypeId: payment?.paymentTypeId ?? 0 };
+        return {
+          ...inst,
+          paymentTypeId: payment?.paymentTypeId ?? 0,
+          parentCategoryId: getParentCategoryId(payment?.paymentCategoryId, categories) ?? 0,
+          paymentCategoryId: payment?.paymentCategoryId ?? 0,
+        };
       });
+
+      if (catFilter) enriched = enriched.filter(r => r.parentCategoryId === catFilter);
+      if (subCatFilter) enriched = enriched.filter(r => r.paymentCategoryId === subCatFilter);
 
       const incomeRows = enriched.filter(r => r.paymentTypeId === this.INCOME_TYPE_ID);
       const expenseRows = enriched.filter(r => r.paymentTypeId === this.EXPENSE_TYPE_ID);
@@ -358,6 +435,33 @@ export class SummaryComponent implements OnInit, AfterViewInit {
 
   onTypeChange(value: string): void {
     this.selectedType.set(value || null);
+  }
+
+  onCategoryChange(value: string): void {
+    this.selectedCategoryId.set(value ? Number(value) : null);
+    this.selectedSubcategoryId.set(null); // Reset subcategory when category changes
+  }
+
+  onSubcategoryChange(value: string): void {
+    this.selectedSubcategoryId.set(value ? Number(value) : null);
+  }
+
+  onChartCategoryChange(value: string): void {
+    this.chartCategoryFilter.set(value ? Number(value) : null);
+    this.chartSubcategoryFilter.set(null);
+  }
+
+  onChartSubcategoryChange(value: string): void {
+    this.chartSubcategoryFilter.set(value ? Number(value) : null);
+  }
+
+  onTrendCategoryChange(value: string): void {
+    this.trendCategoryFilter.set(value ? Number(value) : null);
+    this.trendSubcategoryFilter.set(null);
+  }
+
+  onTrendSubcategoryChange(value: string): void {
+    this.trendSubcategoryFilter.set(value ? Number(value) : null);
   }
 
   toggleSort(): void {

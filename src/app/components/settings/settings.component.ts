@@ -48,6 +48,8 @@ export class SettingsComponent implements OnInit {
   editingCategoryValue = '';
   /** Controla qué categoría padre tiene el formulario de subcategoría abierto */
   addingSubcategoryTo = signal<number | null>(null);
+  /** Controla qué categorías padre están expandidas */
+  expandedCategories = signal<Set<number>>(new Set());
 
   /** Categorías agrupadas: raíces con sus hijas */
   groupedCategories = computed<CategoryGroup[]>(() => {
@@ -101,10 +103,32 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  toggleExpand(parentId: number): void {
+    this.expandedCategories.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(parentId)) {
+        newSet.delete(parentId);
+      } else {
+        newSet.add(parentId);
+      }
+      return newSet;
+    });
+  }
+
+  isExpanded(parentId: number): boolean {
+    return this.expandedCategories().has(parentId);
+  }
+
   toggleAddSubcategory(parentId: number): void {
     if (this.addingSubcategoryTo() === parentId) {
       this.addingSubcategoryTo.set(null);
     } else {
+      // Expand the category when adding subcategory
+      this.expandedCategories.update((set) => {
+        const newSet = new Set(set);
+        newSet.add(parentId);
+        return newSet;
+      });
       this.addingSubcategoryTo.set(parentId);
       this.newSubcategoryName[parentId] = '';
     }

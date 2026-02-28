@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, input, OnInit, output, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -57,6 +57,46 @@ export class PaymentFormComponent implements OnInit {
       children: cats.filter((c) => c.parentId === parent.id),
     }));
   });
+
+  /** Flat list of category options for searchable dropdown */
+  flatCategoryOptions = computed<{ id: number; label: string; isChild: boolean; parentName: string }[]>(() => {
+    const result: { id: number; label: string; isChild: boolean; parentName: string }[] = [];
+    for (const group of this.groupedCategories()) {
+      result.push({
+        id: group.parent.id!,
+        label: group.parent.value,
+        isChild: false,
+        parentName: group.parent.value,
+      });
+      for (const sub of group.children) {
+        result.push({
+          id: sub.id!,
+          label: `${group.parent.value} > ${sub.value}`,
+          isChild: true,
+          parentName: group.parent.value,
+        });
+      }
+    }
+    return result;
+  });
+
+  /** Search query for category dropdown */
+  categorySearch = signal('');
+  categoryDropdownOpen = signal(false);
+
+  /** Filtered category options based on search */
+  filteredCategoryOptions = computed(() => {
+    const query = this.categorySearch().toLowerCase().trim();
+    const all = this.flatCategoryOptions();
+    if (!query) return all;
+    return all.filter((opt) => opt.label.toLowerCase().includes(query));
+  });
+
+  /** Display label for the currently selected category */
+  get selectedCategoryLabel(): string {
+    const opt = this.flatCategoryOptions().find((o) => o.id === this.form.paymentCategoryId);
+    return opt ? opt.label : 'Seleccionar categoría';
+  }
 
   /** '' = Único (se envía como null), el resto son valores del enum */
   readonly frequencyOptions: { value: string; label: string }[] = [
@@ -227,5 +267,32 @@ export class PaymentFormComponent implements OnInit {
     if (!this.form.isIndefinite && this.form.installments < 1) return false;
 
     return true;
+  }
+
+  // --------------- Category Dropdown --------------- //
+  selectCategory(id: number): void {
+    this.form.paymentCategoryId = id;
+    this.categoryDropdownOpen.set(false);
+    this.categorySearch.set('');
+  }
+
+  toggleCategoryDropdown(): void {
+    const isOpen = this.categoryDropdownOpen();
+    this.categoryDropdownOpen.set(!isOpen);
+    if (!isOpen) {
+      this.categorySearch.set('');
+    }
+  }
+
+  onCategorySearchChange(value: string): void {
+    this.categorySearch.set(value);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.category-dropdown-container')) {
+      this.categoryDropdownOpen.set(false);
+    }
   }
 }

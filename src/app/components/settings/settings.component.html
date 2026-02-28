@@ -77,8 +77,22 @@
           </button>
           } @else {
           <!-- View Mode -->
-          <i class="bi bi-folder text-primary/60"></i>
-          <span class="flex-1 text-sm font-medium">{{ group.parent.value }}</span>
+          <button class="btn btn-ghost btn-xs p-0 min-w-[20px]" (click)="toggleExpand(group.parent.id!)"
+            title="Expandir/Comprimir">
+            @if (group.children.length > 0) {
+            <i class="bi text-primary/60 transition-transform duration-200"
+              [class.bi-folder2-open]="isExpanded(group.parent.id!)"
+              [class.bi-folder]="!isExpanded(group.parent.id!)"></i>
+            } @else {
+            <i class="bi bi-folder text-primary/60"></i>
+            }
+          </button>
+          <span class="flex-1 text-sm font-medium cursor-pointer" (click)="toggleExpand(group.parent.id!)">
+            {{ group.parent.value }}
+          </span>
+          @if (group.children.length > 0 && !isExpanded(group.parent.id!)) {
+          <span class="badge badge-ghost badge-xs">{{ group.children.length }}</span>
+          }
           <button class="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
             (click)="toggleAddSubcategory(group.parent.id!)" title="Agregar subcategoría">
             <i class="bi bi-plus-circle text-xs text-primary"></i>
@@ -94,6 +108,8 @@
           }
         </div>
 
+        <!-- Expandable Content: Add form + subcategories -->
+        @if (isExpanded(group.parent.id!)) {
         <!-- Add Subcategory Inline Form -->
         @if (addingSubcategoryTo() === group.parent.id) {
         <div class="flex gap-2 ml-8 mb-1">
@@ -139,6 +155,25 @@
           </button>
           }
         </div>
+        }
+        } @else {
+        <!-- Show add form even when collapsed if user clicked add subcategory -->
+        @if (addingSubcategoryTo() === group.parent.id) {
+        <div class="flex gap-2 ml-8 mb-1">
+          <input type="text" class="input input-xs input-bordered flex-1"
+            [(ngModel)]="newSubcategoryName[group.parent.id!]"
+            placeholder="Nueva subcategoría..."
+            (keydown.enter)="addSubcategory(group.parent.id!)"
+            (keydown.escape)="addingSubcategoryTo.set(null)" />
+          <button class="btn btn-primary btn-xs gap-1" (click)="addSubcategory(group.parent.id!)"
+            [disabled]="!(newSubcategoryName[group.parent.id!] || '').trim()">
+            <i class="bi bi-check-lg"></i>
+          </button>
+          <button class="btn btn-ghost btn-xs" (click)="addingSubcategoryTo.set(null)">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        }
         }
         } @empty {
         <div class="text-center py-8 text-base-content/40">

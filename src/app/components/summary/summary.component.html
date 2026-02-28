@@ -106,7 +106,7 @@
   <!-- Filters Bar -->
   <div class="card bg-base-200 shadow-sm">
     <div class="card-body p-3">
-      <div class="flex flex-col sm:flex-row gap-3">
+      <div class="flex flex-col sm:flex-row gap-3 flex-wrap">
         <label class="input input-sm input-bordered flex items-center gap-2 flex-1">
           <i class="bi bi-search text-base-content/40"></i>
           <input type="text" class="grow" placeholder="Buscar por descripción, categoría..." [ngModel]="searchQuery()"
@@ -119,6 +119,24 @@
           <option value="income">Ingresos</option>
           <option value="expense">Gastos</option>
         </select>
+
+        <select class="select select-sm select-bordered w-full sm:w-44" [ngModel]="selectedCategoryId() ?? ''"
+          (ngModelChange)="onCategoryChange($event)">
+          <option value="">Todas las categorías</option>
+          @for (cat of rootCategories(); track cat.id) {
+          <option [value]="cat.id">{{ cat.value }}</option>
+          }
+        </select>
+
+        @if (filteredSubcategories().length > 0) {
+        <select class="select select-sm select-bordered w-full sm:w-44" [ngModel]="selectedSubcategoryId() ?? ''"
+          (ngModelChange)="onSubcategoryChange($event)">
+          <option value="">Todas las subcategorías</option>
+          @for (sub of filteredSubcategories(); track sub.id) {
+          <option [value]="sub.id">{{ sub.value }}</option>
+          }
+        </select>
+        }
 
         <button class="btn btn-sm btn-ghost gap-1" (click)="toggleSort()"
           [class.btn-active]="sortDirection() === 'desc'">
@@ -164,7 +182,7 @@
           <h3 class="font-bold text-base flex items-center gap-2">
             <i class="bi bi-pie-chart text-primary"></i> Distribución
           </h3>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <select class="select select-xs select-bordered" [ngModel]="chartMetric()"
               (ngModelChange)="chartMetric.set($event)">
               @for (opt of chartMetricOptions; track opt.value) {
@@ -177,6 +195,22 @@
               <option value="income">Ingresos</option>
               <option value="expense">Gastos</option>
             </select>
+            <select class="select select-xs select-bordered" [ngModel]="chartCategoryFilter() ?? ''"
+              (ngModelChange)="onChartCategoryChange($event)">
+              <option value="">Categoría</option>
+              @for (cat of rootCategories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.value }}</option>
+              }
+            </select>
+            @if (chartFilteredSubcategories().length > 0) {
+            <select class="select select-xs select-bordered" [ngModel]="chartSubcategoryFilter() ?? ''"
+              (ngModelChange)="onChartSubcategoryChange($event)">
+              <option value="">Subcategoría</option>
+              @for (sub of chartFilteredSubcategories(); track sub.id) {
+              <option [value]="sub.id">{{ sub.value }}</option>
+              }
+            </select>
+            }
           </div>
         </div>
         <div class="flex-1 min-h-[280px]">
@@ -192,7 +226,7 @@
           <h3 class="font-bold text-base flex items-center gap-2">
             <i class="bi bi-graph-up text-primary"></i> Tendencia (6 meses)
           </h3>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <select class="select select-xs select-bordered" [ngModel]="trendMetric()"
               (ngModelChange)="trendMetric.set($event)">
               @for (opt of trendMetricOptions; track opt.value) {
@@ -205,6 +239,22 @@
               <option value="income">Ingresos</option>
               <option value="expense">Gastos</option>
             </select>
+            <select class="select select-xs select-bordered" [ngModel]="trendCategoryFilter() ?? ''"
+              (ngModelChange)="onTrendCategoryChange($event)">
+              <option value="">Categoría</option>
+              @for (cat of rootCategories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.value }}</option>
+              }
+            </select>
+            @if (trendFilteredSubcategories().length > 0) {
+            <select class="select select-xs select-bordered" [ngModel]="trendSubcategoryFilter() ?? ''"
+              (ngModelChange)="onTrendSubcategoryChange($event)">
+              <option value="">Subcategoría</option>
+              @for (sub of trendFilteredSubcategories(); track sub.id) {
+              <option [value]="sub.id">{{ sub.value }}</option>
+              }
+            </select>
+            }
           </div>
         </div>
         <div class="flex-1 min-h-[280px]">

@@ -8,37 +8,61 @@
     <!-- Monto total -->
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Monto total</span></label>
-      <input type="number" min="0" step="0.01"
-        class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.totalAmount"
-        placeholder="0.00" />
+      <input type="number" min="0" step="0.01" class="input input-sm input-bordered w-full"
+        [(ngModel)]="form.totalAmount" placeholder="0.00" />
     </div>
 
-    <!-- Categoría -->
-    <div class="form-control">
+    <!-- Categoría (searchable dropdown) -->
+    <div class="form-control category-dropdown-container">
       <label class="label"><span class="label-text text-xs">Categoría</span></label>
-      <select class="select select-sm select-bordered w-full"
-        [(ngModel)]="form.paymentCategoryId">
-        @for (group of groupedCategories(); track group.parent.id) {
-          @if (group.children.length > 0) {
-            <optgroup [label]="group.parent.value">
-              <option [ngValue]="group.parent.id">{{ group.parent.value }} (general)</option>
-              @for (sub of group.children; track sub.id) {
-                <option [ngValue]="sub.id">{{ sub.value }}</option>
+      <div class="relative">
+        <!-- Trigger button -->
+        <button type="button"
+          class="btn btn-sm btn-ghost border border-base-content/20 w-full justify-between font-normal"
+          (click)="toggleCategoryDropdown()">
+          <span class="truncate text-left flex-1">{{ selectedCategoryLabel }}</span>
+          <i class="bi bi-chevron-down text-xs transition-transform" [class.rotate-180]="categoryDropdownOpen()"></i>
+        </button>
+
+        <!-- Dropdown panel -->
+        @if (categoryDropdownOpen()) {
+        <div
+          class="absolute z-50 mt-1 w-full bg-base-100 border border-base-content/20 rounded-lg shadow-lg max-h-60 flex flex-col">
+          <!-- Search input -->
+          <div class="p-2 border-b border-base-200">
+            <input type="text" class="input input-xs input-bordered w-full" placeholder="Buscar categoría..."
+              [ngModel]="categorySearch()" (ngModelChange)="onCategorySearchChange($event)"
+              (click)="$event.stopPropagation()" />
+          </div>
+          <!-- Options list -->
+          <div class="overflow-y-auto flex-1">
+            @for (opt of filteredCategoryOptions(); track opt.id) {
+            <button type="button"
+              class="w-full text-left px-3 py-1.5 text-sm hover:bg-base-200 transition-colors flex items-center gap-1"
+              [class.bg-primary/10]="form.paymentCategoryId === opt.id" [class.font-semibold]="!opt.isChild"
+              [class.pl-6]="opt.isChild" [class.text-base-content/70]="opt.isChild"
+              (click)="selectCategory(opt.id); $event.stopPropagation()">
+              @if (!opt.isChild) {
+              <i class="bi bi-folder text-primary/50 text-xs"></i>
               }
-            </optgroup>
-          } @else {
-            <option [ngValue]="group.parent.id">{{ group.parent.value }}</option>
-          }
+              {{ opt.label }}
+            </button>
+            } @empty {
+            <div class="px-3 py-4 text-center text-sm text-base-content/40">
+              Sin resultados
+            </div>
+            }
+          </div>
+        </div>
         }
-      </select>
+      </div>
     </div>
 
     <!-- Frecuencia -->
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Frecuencia</span></label>
-      <select class="select select-sm select-bordered w-full"
-        [(ngModel)]="form.frequency" (ngModelChange)="onFrequencyChange()">
+      <select class="select select-sm select-bordered w-full" [(ngModel)]="form.frequency"
+        (ngModelChange)="onFrequencyChange()">
         @for (freq of frequencyOptions; track freq.value) {
         <option [ngValue]="freq.value">{{ freq.label }}</option>
         }
@@ -48,8 +72,7 @@
     <!-- Descripción -->
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Descripción (opcional)</span></label>
-      <input type="text" class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.comments"
+      <input type="text" class="input input-sm input-bordered w-full" [(ngModel)]="form.comments"
         placeholder="Ej: Salario mensual" />
     </div>
 
@@ -57,8 +80,7 @@
     @if (isOnce) {
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Fecha del pago</span></label>
-      <input type="date" class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.startDate" />
+      <input type="date" class="input input-sm input-bordered w-full" [(ngModel)]="form.startDate" />
     </div>
     }
 
@@ -69,8 +91,7 @@
     @if (isMonthly) {
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">{{ paymentDayLabel }}</span></label>
-      <select class="select select-sm select-bordered w-full"
-        [(ngModel)]="form.paymentDay">
+      <select class="select select-sm select-bordered w-full" [(ngModel)]="form.paymentDay">
         @for (d of daysOfMonth; track d) {
         <option [ngValue]="d">{{ d }}</option>
         }
@@ -82,8 +103,7 @@
     @if (isWeeklyOrBiweekly) {
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">{{ paymentDayLabel }}</span></label>
-      <select class="select select-sm select-bordered w-full"
-        [(ngModel)]="form.paymentDay">
+      <select class="select select-sm select-bordered w-full" [(ngModel)]="form.paymentDay">
         @for (d of daysOfWeek; track d.value) {
         <option [ngValue]="d.value">{{ d.label }}</option>
         }
@@ -95,8 +115,7 @@
     @if (isMonthly) {
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">{{ startLabel }}</span></label>
-      <input type="month" class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.startMonth" />
+      <input type="month" class="input input-sm input-bordered w-full" [(ngModel)]="form.startMonth" />
     </div>
     }
 
@@ -104,8 +123,7 @@
     @if (!isMonthly) {
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">{{ startLabel }}</span></label>
-      <input type="date" class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.startDate" />
+      <input type="date" class="input input-sm input-bordered w-full" [(ngModel)]="form.startDate" />
     </div>
     }
 
@@ -115,8 +133,7 @@
         <span class="label-text text-xs">Plazo</span>
       </label>
       <label class="label cursor-pointer justify-start gap-3">
-        <input type="checkbox" class="toggle toggle-sm toggle-primary"
-          [(ngModel)]="form.isIndefinite" />
+        <input type="checkbox" class="toggle toggle-sm toggle-primary" [(ngModel)]="form.isIndefinite" />
         <span class="label-text text-xs">{{ form.isIndefinite ? 'Indefinido' : 'Cantidad de cuotas' }}</span>
       </label>
     </div>
@@ -125,9 +142,7 @@
     @if (!form.isIndefinite) {
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Cantidad de cuotas</span></label>
-      <input type="number" min="1" step="1"
-        class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.installments"
+      <input type="number" min="1" step="1" class="input input-sm input-bordered w-full" [(ngModel)]="form.installments"
         placeholder="1" />
     </div>
     }
@@ -139,7 +154,8 @@
   @if (isRecurring && !form.isIndefinite && suggestedInstallmentAmount !== null) {
   <div class="flex items-center gap-2 text-xs text-base-content/50 bg-primary/5 rounded-lg p-2">
     <i class="bi bi-calculator"></i>
-    <span>Monto por cuota: <strong class="text-primary">{{ suggestedInstallmentAmount | number : '1.2-2' }}</strong></span>
+    <span>Monto por cuota: <strong class="text-primary">{{ suggestedInstallmentAmount | number : '1.2-2'
+        }}</strong></span>
   </div>
   }
 
@@ -154,7 +170,7 @@
   <div class="flex justify-end gap-2 mt-2">
     <button class="btn btn-ghost btn-sm" (click)="onCancel()">Cancelar</button>
     <button class="btn btn-primary btn-sm" (click)="onSubmit()" [disabled]="!isValid()">
-      <i class="bi bi-check-lg me-1"></i> Guardar
+      Guardar
     </button>
   </div>
 </div>
