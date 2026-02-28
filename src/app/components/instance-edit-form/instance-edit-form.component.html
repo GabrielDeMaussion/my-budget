@@ -7,17 +7,60 @@
     <!-- Monto -->
     <div class="form-control">
       <label class="label"><span class="label-text text-xs">Monto</span></label>
-      <input type="number" min="0" step="0.01"
-        class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.amount"
+      <input type="number" min="0" step="0.01" class="input input-sm input-bordered w-full" [(ngModel)]="form.amount"
         placeholder="0.00" />
     </div>
 
+    <!-- Categoría (searchable dropdown) -->
+    <div class="form-control category-dropdown-container">
+      <label class="label"><span class="label-text text-xs">Categoría</span></label>
+      <div class="relative">
+        <!-- Trigger button -->
+        <button type="button"
+          class="btn btn-sm btn-ghost border border-base-content/20 w-full justify-between font-normal"
+          (click)="toggleCategoryDropdown()">
+          <span class="truncate text-left flex-1">{{ selectedCategoryLabel }}</span>
+          <i class="bi bi-chevron-down text-xs transition-transform" [class.rotate-180]="categoryDropdownOpen()"></i>
+        </button>
+
+        <!-- Dropdown panel -->
+        @if (categoryDropdownOpen()) {
+        <div
+          class="absolute z-50 mt-1 w-full bg-base-100 border border-base-content/20 rounded-lg shadow-lg max-h-60 flex flex-col">
+          <!-- Search input -->
+          <div class="p-2 border-b border-base-200">
+            <input type="text" class="input input-xs input-bordered w-full" placeholder="Buscar categoría..."
+              [ngModel]="categorySearch()" (ngModelChange)="onCategorySearchChange($event)"
+              (click)="$event.stopPropagation()" />
+          </div>
+          <!-- Options list -->
+          <div class="overflow-y-auto flex-1">
+            @for (opt of filteredCategoryOptions(); track opt.id) {
+            <button type="button"
+              class="w-full text-left px-3 py-1.5 text-sm hover:bg-base-200 transition-colors flex items-center gap-1"
+              [class.bg-primary/10]="form.paymentCategoryId === opt.id" [class.font-semibold]="!opt.isChild"
+              [class.pl-6]="opt.isChild" [class.text-base-content/70]="opt.isChild"
+              (click)="selectCategory(opt.id); $event.stopPropagation()">
+              @if (!opt.isChild) {
+              <i class="bi bi-folder text-primary/50 text-xs"></i>
+              }
+              {{ opt.label }}
+            </button>
+            } @empty {
+            <div class="px-3 py-4 text-center text-sm text-base-content/40">
+              Sin resultados
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
     <!-- Comentario -->
-    <div class="form-control">
+    <div class="form-control sm:col-span-2">
       <label class="label"><span class="label-text text-xs">Comentario</span></label>
-      <input type="text" class="input input-sm input-bordered w-full"
-        [(ngModel)]="form.comments"
+      <input type="text" class="input input-sm input-bordered w-full" [(ngModel)]="form.comments"
         placeholder="Descripción..." />
     </div>
   </div>
@@ -26,7 +69,7 @@
   <div class="flex justify-end gap-2 mt-2">
     <button class="btn btn-ghost btn-sm" (click)="onCancel()">Cancelar</button>
     <button class="btn btn-primary btn-sm" (click)="onSubmit()" [disabled]="!isValid()">
-      <i class="bi bi-check-lg me-1"></i> Guardar
+      Guardar
     </button>
   </div>
 </div>

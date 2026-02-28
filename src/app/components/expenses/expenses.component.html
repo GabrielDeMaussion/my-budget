@@ -126,6 +126,7 @@
 <ng-template #editFormTemplate>
   @if (editingItem()) {
   <app-instance-edit-form [initialAmount]="editingItem().amount" [initialComments]="editingItem().comments"
-    (formSubmit)="onEditFormSubmit($event)" (formCancel)="onEditFormCancel()" />
+    [initialCategoryId]="editingItem().paymentCategoryId" (formSubmit)="onEditFormSubmit($event)"
+    (formCancel)="onEditFormCancel()" />
   }
 </ng-template>

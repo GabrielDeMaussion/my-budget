@@ -360,6 +360,12 @@ export class IncomesComponent implements OnInit {
     const payment = this.payments().find((p) => p.id === item.paymentId);
     const isIndefinite = payment?.frequency && !payment?.installments;
 
+    // Update category on the Payment if it changed
+    const categoryChanged = payment && result.paymentCategoryId !== payment.paymentCategoryId;
+    const updateCategory$ = categoryChanged
+      ? this.paymentService.updatePayment(payment.id!, { paymentCategoryId: result.paymentCategoryId }).pipe(switchMap(() => of(void 0)))
+      : of(void 0);
+
     if (isIndefinite) {
       const futureInstances = this.allInstances()
         .filter((i) => i.paymentId === item.paymentId && i.paymentDate >= item.paymentDate)
@@ -375,22 +381,28 @@ export class IncomesComponent implements OnInit {
         )
         .subscribe((confirmed) => {
           if (confirmed) {
-            from(futureInstances).pipe(
-              concatMap((inst) =>
-                this.paymentService.updatePaymentInstance(inst.id!, {
-                  amount: result.amount,
-                  comments: result.comments,
-                })
-              ),
-              toArray()
+            updateCategory$.pipe(
+              switchMap(() =>
+                from(futureInstances).pipe(
+                  concatMap((inst) =>
+                    this.paymentService.updatePaymentInstance(inst.id!, {
+                      amount: result.amount,
+                      comments: result.comments,
+                    })
+                  ),
+                  toArray()
+                )
+              )
             ).subscribe(() => this.loadData());
           }
         });
     } else {
       this.dialogService.close();
-      this.paymentService
-        .updatePaymentInstance(item.id, { amount: result.amount, comments: result.comments })
-        .subscribe(() => this.loadData());
+      updateCategory$.pipe(
+        switchMap(() =>
+          this.paymentService.updatePaymentInstance(item.id, { amount: result.amount, comments: result.comments })
+        )
+      ).subscribe(() => this.loadData());
     }
     this.editingItem.set(null);
   }

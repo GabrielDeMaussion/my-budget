@@ -1,10 +1,19 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, HostListener, inject, input, OnInit, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
+import { PaymentCategory } from '../../interfaces/payment-category.interface';
+import { PaymentService } from '../../services/payment.service';
 
 export interface InstanceEditResult {
     amount: number;
     comments: string;
+    paymentCategoryId: number;
+}
+
+interface CategoryGroup {
+    parent: PaymentCategory;
+    children: PaymentCategory[];
 }
 
 @Component({
@@ -13,28 +22,82 @@ export interface InstanceEditResult {
     templateUrl: './instance-edit-form.component.html',
     styleUrls: ['./instance-edit-form.component.css'],
 })
-export class InstanceEditFormComponent {
+export class InstanceEditFormComponent implements OnInit {
+    // --------------- Injects --------------- //
+    private readonly paymentService = inject(PaymentService);
+
     // --------------- Inputs --------------- //
     initialAmount = input.required<number>();
     initialComments = input.required<string>();
+    initialCategoryId = input.required<number>();
 
     // --------------- Outputs --------------- //
     formSubmit = output<InstanceEditResult>();
     formCancel = output<void>();
 
     // --------------- State --------------- //
+    categories = signal<PaymentCategory[]>([]);
+
     form = {
         amount: 0,
         comments: '',
+        paymentCategoryId: 0,
     };
 
     private initialized = false;
+
+    // --------------- Category Dropdown --------------- //
+    groupedCategories = computed<CategoryGroup[]>(() => {
+        const cats = this.categories();
+        const roots = cats.filter((c) => !c.parentId);
+        return roots.map((parent) => ({
+            parent,
+            children: cats.filter((c) => c.parentId === parent.id),
+        }));
+    });
+
+    flatCategoryOptions = computed<{ id: number; label: string; isChild: boolean; parentName: string }[]>(() => {
+        const result: { id: number; label: string; isChild: boolean; parentName: string }[] = [];
+        for (const group of this.groupedCategories()) {
+            result.push({
+                id: group.parent.id!,
+                label: group.parent.value,
+                isChild: false,
+                parentName: group.parent.value,
+            });
+            for (const sub of group.children) {
+                result.push({
+                    id: sub.id!,
+                    label: `${group.parent.value} > ${sub.value}`,
+                    isChild: true,
+                    parentName: group.parent.value,
+                });
+            }
+        }
+        return result;
+    });
+
+    categorySearch = signal('');
+    categoryDropdownOpen = signal(false);
+
+    filteredCategoryOptions = computed(() => {
+        const query = this.categorySearch().toLowerCase().trim();
+        const all = this.flatCategoryOptions();
+        if (!query) return all;
+        return all.filter((opt) => opt.label.toLowerCase().includes(query));
+    });
+
+    get selectedCategoryLabel(): string {
+        const opt = this.flatCategoryOptions().find((o) => o.id === this.form.paymentCategoryId);
+        return opt ? opt.label : 'Seleccionar categoría';
+    }
 
     // --------------- Lifecycle --------------- //
     ngOnChanges(): void {
         if (!this.initialized) {
             this.form.amount = this.initialAmount();
             this.form.comments = this.initialComments();
+            this.form.paymentCategoryId = this.initialCategoryId();
             this.initialized = true;
         }
     }
@@ -42,14 +105,20 @@ export class InstanceEditFormComponent {
     ngOnInit(): void {
         this.form.amount = this.initialAmount();
         this.form.comments = this.initialComments();
+        this.form.paymentCategoryId = this.initialCategoryId();
+
+        this.paymentService.getPaymentCategories().subscribe((cats) => {
+            this.categories.set(cats);
+        });
     }
 
     // --------------- Methods --------------- //
     onSubmit(): void {
-        if (this.form.amount < 0 || isNaN(this.form.amount)) return;
+        if (!this.isValid()) return;
         this.formSubmit.emit({
             amount: this.form.amount,
             comments: this.form.comments,
+            paymentCategoryId: this.form.paymentCategoryId,
         });
     }
 
@@ -58,6 +127,33 @@ export class InstanceEditFormComponent {
     }
 
     isValid(): boolean {
-        return this.form.amount >= 0 && !isNaN(this.form.amount);
+        return this.form.amount >= 0 && !isNaN(this.form.amount) && this.form.paymentCategoryId > 0;
+    }
+
+    // --------------- Category Dropdown Methods --------------- //
+    selectCategory(id: number): void {
+        this.form.paymentCategoryId = id;
+        this.categoryDropdownOpen.set(false);
+        this.categorySearch.set('');
+    }
+
+    toggleCategoryDropdown(): void {
+        const isOpen = this.categoryDropdownOpen();
+        this.categoryDropdownOpen.set(!isOpen);
+        if (!isOpen) {
+            this.categorySearch.set('');
+        }
+    }
+
+    onCategorySearchChange(value: string): void {
+        this.categorySearch.set(value);
+    }
+
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent): void {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.category-dropdown-container')) {
+            this.categoryDropdownOpen.set(false);
+        }
     }
 }
