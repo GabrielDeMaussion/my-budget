@@ -265,6 +265,26 @@ export class ExpensesComponent implements OnInit {
     if (event.column === 'stateLabel') {
       this.paymentService
         .updatePaymentInstance(event.item.id, { state: event.optionId })
+        .pipe(
+          switchMap(() => {
+            // Auto-complete: check if all instances of the plan are now PAID
+            const payment = this.payments().find((p) => p.id === event.item.paymentId);
+            if (!payment || !payment.frequency) return of(null);
+
+            const planInstances = this.allInstances().filter((i) => i.paymentId === payment.id);
+            // Simulate the update: replace this instance's state in the check
+            const allPaid = planInstances.every((i) =>
+              i.id === event.item.id ? event.optionId === 'PAID' : i.state === 'PAID'
+            );
+
+            if (allPaid && payment.state !== 'COMPLETED') {
+              return this.paymentService.updatePayment(payment.id!, { state: 'COMPLETED' });
+            } else if (!allPaid && payment.state === 'COMPLETED') {
+              return this.paymentService.updatePayment(payment.id!, { state: 'ACTIVE' });
+            }
+            return of(null);
+          })
+        )
         .subscribe(() => this.loadData());
     }
   }

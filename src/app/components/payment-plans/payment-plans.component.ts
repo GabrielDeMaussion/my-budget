@@ -159,6 +159,9 @@ export class PaymentPlansComponent implements OnInit {
     /** Acciones de la tabla de planes */
     readonly planActions: MenuItem[] = [
         { id: 'detail', label: 'Ver detalle', icon: 'bi-eye' },
+        { id: 'activate', label: 'Activar plan', icon: 'bi-play-circle' },
+        { id: 'complete', label: 'Completar plan', icon: 'bi-check-circle' },
+        { id: 'cancel', label: 'Cancelar plan', icon: 'bi-x-circle' },
         { id: 'delete', label: 'Eliminar plan', icon: 'bi-trash' },
     ];
 
@@ -184,6 +187,9 @@ export class PaymentPlansComponent implements OnInit {
                 this.allInstances.set(data.instances);
                 this.categories.set(data.categories);
                 this.isLoading.set(false);
+
+                // Auto-complete: check plans where all instances are PAID
+                this.autoCompletePlans(data.payments, data.instances);
             },
             error: (err) => {
                 console.error('Error cargando planes de pago:', err);
@@ -211,10 +217,23 @@ export class PaymentPlansComponent implements OnInit {
 
     // --------------- Plan Table Actions --------------- //
     onPlanAction(event: { actionId: string; item: any }): void {
-        if (event.actionId === 'detail') {
-            this.openPlanDetail(event.item._payment);
-        } else if (event.actionId === 'delete') {
-            this.deletePlan(event.item._payment);
+        const payment = event.item._payment;
+        switch (event.actionId) {
+            case 'detail':
+                this.openPlanDetail(payment);
+                break;
+            case 'activate':
+                this.changePlanState(payment, PaymentState.ACTIVE);
+                break;
+            case 'complete':
+                this.changePlanState(payment, PaymentState.COMPLETED);
+                break;
+            case 'cancel':
+                this.changePlanState(payment, PaymentState.CANCELLED);
+                break;
+            case 'delete':
+                this.deletePlan(payment);
+                break;
         }
     }
 
@@ -349,10 +368,24 @@ export class PaymentPlansComponent implements OnInit {
             }
         }
 
-        let updatePaymentTask$: import('rxjs').Observable<any> = of(null);
+        // Determine updates to the payment plan
+        const paymentUpdates: Record<string, any> = {};
         if (payment.frequency && payment.installments && current.length !== original.length) {
-            updatePaymentTask$ = this.paymentService.updatePayment(payment.id!, { installments: current.length });
+            paymentUpdates['installments'] = current.length;
         }
+
+        // Auto-complete: if all instances are PAID, mark plan as COMPLETED
+        const allPaid = current.length > 0 && current.every(i => i.state === PaymentInstanceState.PAID);
+        if (allPaid && payment.state !== PaymentState.COMPLETED) {
+            paymentUpdates['state'] = PaymentState.COMPLETED;
+        } else if (!allPaid && payment.state === PaymentState.COMPLETED) {
+            // If plan was COMPLETED but now not all are paid, revert to ACTIVE
+            paymentUpdates['state'] = PaymentState.ACTIVE;
+        }
+
+        const updatePaymentTask$: import('rxjs').Observable<any> = Object.keys(paymentUpdates).length > 0
+            ? this.paymentService.updatePayment(payment.id!, paymentUpdates)
+            : of(null);
 
         forkJoin(tasks.length ? tasks : [of(null)]).pipe(
             switchMap(() => updatePaymentTask$)
@@ -438,5 +471,100 @@ export class PaymentPlansComponent implements OnInit {
                     },
                 });
             });
+    }
+
+    // --------------- Change Plan State --------------- //
+    /**
+     * Changes the state of a payment plan and cascades to all its instances.
+     * State mapping: ACTIVE → PENDING, PAUSED → PENDING, CANCELLED → CANCELLED, COMPLETED → PAID
+     */
+    changePlanState(payment: Payment, newState: string): void {
+        const stateLabel = getPaymentStateLabel(newState);
+        const description = payment.comments || 'Sin descripción';
+        const instances = this.allInstances().filter((i) => i.paymentId === payment.id);
+        const today = new Date().toISOString().split('T')[0];
+
+        this.dialogService
+            .confirm(
+                `Cambiar estado del plan`,
+                `¿Cambiar el plan "${description}" a "${stateLabel}"? Se actualizarán ${instances.length} instancia${instances.length !== 1 ? 's' : ''} al estado correspondiente.`,
+                'info'
+            )
+            .subscribe((confirmed) => {
+                if (!confirmed) return;
+
+                this.isLoading.set(true);
+
+                // Update all instances state based on plan state
+                const updateInstances$ = instances.length > 0
+                    ? from(instances).pipe(
+                        concatMap((inst) => {
+                            let instanceState: string;
+                            if (newState === PaymentState.ACTIVE) {
+                                // Past/current → PAID, future → PENDING
+                                instanceState = inst.paymentDate <= today
+                                    ? PaymentInstanceState.PAID
+                                    : PaymentInstanceState.PENDING;
+                            } else if (newState === PaymentState.CANCELLED) {
+                                instanceState = PaymentInstanceState.CANCELLED;
+                            } else {
+                                // COMPLETED → all PAID
+                                instanceState = PaymentInstanceState.PAID;
+                            }
+                            return this.paymentService.updatePaymentInstance(inst.id!, { state: instanceState });
+                        }),
+                        toArray()
+                    )
+                    : of([]);
+
+                // Update the plan state
+                updateInstances$.pipe(
+                    switchMap(() => this.paymentService.updatePayment(payment.id!, { state: newState }))
+                ).subscribe({
+                    next: () => this.loadData(),
+                    error: (err) => {
+                        console.error('Error cambiando estado:', err);
+                        this.isLoading.set(false);
+                    },
+                });
+            });
+    }
+
+    // --------------- Auto-complete Plans --------------- //
+    /**
+     * Checks all plans and auto-marks as COMPLETED if all instances are PAID.
+     * Also reverts COMPLETED plans if not all instances are PAID.
+     */
+    private autoCompletePlans(payments: Payment[], instances: PaymentInstance[]): void {
+        const plansToUpdate: { id: number; state: string }[] = [];
+
+        for (const payment of payments) {
+            // Only check recurrent plans with installments
+            if (!payment.frequency || payment.frequency === PaymentFrequency.ONCE) continue;
+
+            const planInstances = instances.filter((i) => i.paymentId === payment.id);
+            if (planInstances.length === 0) continue;
+
+            const allPaid = planInstances.every((i) => i.state === PaymentInstanceState.PAID);
+
+            if (allPaid && payment.state !== PaymentState.COMPLETED) {
+                plansToUpdate.push({ id: payment.id!, state: PaymentState.COMPLETED });
+            }
+        }
+
+        if (plansToUpdate.length > 0) {
+            from(plansToUpdate).pipe(
+                concatMap((p) => this.paymentService.updatePayment(p.id, { state: p.state })),
+                toArray()
+            ).subscribe(() => {
+                // Reload payments to reflect the auto-complete state
+                const user = this.authService.authUser();
+                if (user) {
+                    this.paymentService.getPaymentsByUser(user.sub).subscribe((updatedPayments) => {
+                        this.payments.set(updatedPayments);
+                    });
+                }
+            });
+        }
     }
 }

@@ -264,6 +264,24 @@ export class IncomesComponent implements OnInit {
     if (event.column === 'stateLabel') {
       this.paymentService
         .updatePaymentInstance(event.item.id, { state: event.optionId })
+        .pipe(
+          switchMap(() => {
+            const payment = this.payments().find((p) => p.id === event.item.paymentId);
+            if (!payment || !payment.frequency) return of(null);
+
+            const planInstances = this.allInstances().filter((i) => i.paymentId === payment.id);
+            const allPaid = planInstances.every((i) =>
+              i.id === event.item.id ? event.optionId === 'PAID' : i.state === 'PAID'
+            );
+
+            if (allPaid && payment.state !== 'COMPLETED') {
+              return this.paymentService.updatePayment(payment.id!, { state: 'COMPLETED' });
+            } else if (!allPaid && payment.state === 'COMPLETED') {
+              return this.paymentService.updatePayment(payment.id!, { state: 'ACTIVE' });
+            }
+            return of(null);
+          })
+        )
         .subscribe(() => this.loadData());
     }
   }

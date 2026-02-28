@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal, ViewChild, ElementRef, AfterViewInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, switchMap, of } from 'rxjs';
 
 import { PaymentInstance } from '../../interfaces/payment-instance.interface';
 import { Payment } from '../../interfaces/payment.interface';
@@ -472,6 +472,24 @@ export class SummaryComponent implements OnInit, AfterViewInit {
     if (event.column === 'stateLabel') {
       this.paymentService
         .updatePaymentInstance(event.item.id!, { state: event.optionId })
+        .pipe(
+          switchMap(() => {
+            const payment = this.payments().find((p) => p.id === event.item.paymentId);
+            if (!payment || !payment.frequency) return of(null);
+
+            const planInstances = this.allInstances().filter((i) => i.paymentId === payment.id);
+            const allPaid = planInstances.every((i) =>
+              i.id === event.item.id ? event.optionId === 'PAID' : i.state === 'PAID'
+            );
+
+            if (allPaid && payment.state !== 'COMPLETED') {
+              return this.paymentService.updatePayment(payment.id!, { state: 'COMPLETED' });
+            } else if (!allPaid && payment.state === 'COMPLETED') {
+              return this.paymentService.updatePayment(payment.id!, { state: 'ACTIVE' });
+            }
+            return of(null);
+          })
+        )
         .subscribe(() => this.loadData());
     }
   }
