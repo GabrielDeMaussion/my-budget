@@ -1,12 +1,18 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 
 import { PaymentService } from '../../services/payment.service';
 import { AuthService } from '../../services/auth.service';
 import { DialogService } from '../../services/dialog.service';
 import { PaymentCategory } from '../../interfaces/payment-category.interface';
 import { DatabaseService } from '../../services/database.service';
+
+interface CategoryGroup {
+  parent: PaymentCategory;
+  children: PaymentCategory[];
+}
 
 @Component({
   selector: 'app-settings',
@@ -37,8 +43,21 @@ export class SettingsComponent implements OnInit {
 
   currentTheme = signal(localStorage.getItem('app-theme') || 'dark');
   newCategoryName = '';
+  newSubcategoryName: { [parentId: number]: string } = {};
   editingCategoryId = signal<number | string | null>(null);
   editingCategoryValue = '';
+  /** Controla qué categoría padre tiene el formulario de subcategoría abierto */
+  addingSubcategoryTo = signal<number | null>(null);
+
+  /** Categorías agrupadas: raíces con sus hijas */
+  groupedCategories = computed<CategoryGroup[]>(() => {
+    const cats = this.categories();
+    const roots = cats.filter((c) => !c.parentId);
+    return roots.map((parent) => ({
+      parent,
+      children: cats.filter((c) => c.parentId === parent.id),
+    }));
+  });
 
   // --------------- Init --------------- //
   ngOnInit(): void {
@@ -73,12 +92,35 @@ export class SettingsComponent implements OnInit {
     const name = this.newCategoryName.trim();
     if (!name) return;
 
-    this.paymentService.createPaymentCategory({ value: name }).subscribe({
+    this.paymentService.createPaymentCategory({ value: name, parentId: null }).subscribe({
       next: () => {
         this.newCategoryName = '';
         this.loadCategories();
       },
       error: (err) => console.error('Error creando categoría:', err),
+    });
+  }
+
+  toggleAddSubcategory(parentId: number): void {
+    if (this.addingSubcategoryTo() === parentId) {
+      this.addingSubcategoryTo.set(null);
+    } else {
+      this.addingSubcategoryTo.set(parentId);
+      this.newSubcategoryName[parentId] = '';
+    }
+  }
+
+  addSubcategory(parentId: number): void {
+    const name = (this.newSubcategoryName[parentId] || '').trim();
+    if (!name) return;
+
+    this.paymentService.createPaymentCategory({ value: name, parentId }).subscribe({
+      next: () => {
+        this.newSubcategoryName[parentId] = '';
+        this.addingSubcategoryTo.set(null);
+        this.loadCategories();
+      },
+      error: (err) => console.error('Error creando subcategoría:', err),
     });
   }
 
@@ -107,13 +149,27 @@ export class SettingsComponent implements OnInit {
   }
 
   deleteCategory(cat: PaymentCategory): void {
+    const isParent = !cat.parentId;
+    const children = isParent
+      ? this.categories().filter((c) => c.parentId === cat.id)
+      : [];
+    const msg = isParent && children.length > 0
+      ? `¿Estás seguro de eliminar "${cat.value}" y sus ${children.length} subcategoría(s)?`
+      : `¿Estás seguro de eliminar "${cat.value}"?`;
+
     this.dialogService
-      .confirm('Eliminar categoría', `¿Estás seguro de eliminar "${cat.value}"?`, 'error')
+      .confirm('Eliminar categoría', msg, 'error')
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.paymentService.deletePaymentCategory(cat.id!).subscribe({
-            next: () => this.loadCategories(),
-            error: (err) => console.error('Error eliminando categoría:', err),
+          // Eliminar subcategorías primero si es una categoría padre
+          const childDeletes = children.map((c) =>
+            firstValueFrom(this.paymentService.deletePaymentCategory(c.id!))
+          );
+          Promise.all(childDeletes).then(() => {
+            this.paymentService.deletePaymentCategory(cat.id!).subscribe({
+              next: () => this.loadCategories(),
+              error: (err) => console.error('Error eliminando categoría:', err),
+            });
           });
         }
       });

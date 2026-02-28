@@ -26,11 +26,29 @@ export class PaymentService {
     return from(this.db.getAll<PaymentCategory>('paymentCategories'));
   }
 
-  createPaymentCategory(dto: { value: string }): Observable<PaymentCategory> {
+  /** Devuelve solo categorías raíz (sin parentId) */
+  getRootCategories(): Observable<PaymentCategory[]> {
+    return from(
+      this.db.getAll<PaymentCategory>('paymentCategories').then(
+        (cats) => cats.filter((c) => !c.parentId)
+      )
+    );
+  }
+
+  /** Devuelve subcategorías de una categoría padre */
+  getSubcategories(parentId: number): Observable<PaymentCategory[]> {
+    return from(
+      this.db.getAll<PaymentCategory>('paymentCategories').then(
+        (cats) => cats.filter((c) => c.parentId === parentId)
+      )
+    );
+  }
+
+  createPaymentCategory(dto: { value: string; parentId?: number | null }): Observable<PaymentCategory> {
     return from(this.db.add<PaymentCategory>('paymentCategories', dto as PaymentCategory));
   }
 
-  updatePaymentCategory(id: number | string, dto: Partial<{ value: string }>): Observable<PaymentCategory> {
+  updatePaymentCategory(id: number | string, dto: Partial<{ value: string; parentId: number | null }>): Observable<PaymentCategory> {
     return from(this.db.update<PaymentCategory>('paymentCategories', id, dto));
   }
 

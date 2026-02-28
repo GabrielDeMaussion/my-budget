@@ -63,9 +63,9 @@ export class DatabaseService {
 
         const categories = await this.getAll('paymentCategories');
         if (categories.length === 0) {
-            await this.add('paymentCategories', { id: 1, value: 'Salario' });
-            await this.add('paymentCategories', { id: 2, value: 'Alimentación' });
-            await this.add('paymentCategories', { id: 3, value: 'Servicios' });
+            await this.add('paymentCategories', { id: 1, value: 'Salario', parentId: null });
+            await this.add('paymentCategories', { id: 2, value: 'Alimentación', parentId: null });
+            await this.add('paymentCategories', { id: 3, value: 'Servicios', parentId: null });
         }
 
         const users = await this.getAll('users');

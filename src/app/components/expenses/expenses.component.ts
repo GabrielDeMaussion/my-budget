@@ -30,6 +30,7 @@ import {
 } from '../../utils/date-navigation.util';
 import { PaymentService } from '../../services/payment.service';
 import { generateFiniteInstanceDates, generateIndefiniteInstanceDatesFor5Years } from '../../utils/installment.util';
+import { getCategoryDisplayName } from '../../utils/category.util';
 
 @Component({
   selector: 'app-expenses',
@@ -134,7 +135,6 @@ export class ExpensesComponent implements OnInit {
 
     let rows = this.filteredInstances().map((inst) => {
       const payment = this.payments().find((p) => p.id === inst.paymentId);
-      const category = this.categories().find((c) => c.id === payment?.paymentCategoryId);
       const totalInstallments = payment?.installments ?? null;
 
       let installmentInfo: string;
@@ -150,7 +150,7 @@ export class ExpensesComponent implements OnInit {
       return {
         ...inst,
         description: payment?.comments ?? '—',
-        categoryName: category?.value ?? '—',
+        categoryName: getCategoryDisplayName(payment?.paymentCategoryId, this.categories()),
         paymentCategoryId: payment?.paymentCategoryId ?? 0,
         stateLabel: getInstanceStateLabel(inst.state),
         stateColor: getInstanceStateColor(inst.state),
@@ -270,10 +270,9 @@ export class ExpensesComponent implements OnInit {
         const payment = this.payments().find((p) => p.id === event.item.paymentId);
         if (!payment) return;
         const instances = this.allInstances().filter((i) => i.paymentId === payment.id);
-        const category = this.categories().find((c) => c.id === payment.paymentCategoryId);
         this.selectedPayment.set(payment);
         this.selectedInstances.set(instances);
-        this.selectedCategoryName.set(category?.value ?? '—');
+        this.selectedCategoryName.set(getCategoryDisplayName(payment.paymentCategoryId, this.categories()));
         this.dialogService.open({
           type: 'custom',
           title: 'Detalle del plan',

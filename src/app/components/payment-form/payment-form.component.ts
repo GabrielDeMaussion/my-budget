@@ -1,4 +1,4 @@
-import { Component, inject, input, OnInit, output, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -7,6 +7,11 @@ import { PaymentFrequency, PaymentFrequencyLabels } from '../../interfaces/enums
 import { PaymentState } from '../../interfaces/enums/payment-state.enum';
 import { calculateInstallmentAmount } from '../../utils/installment.util';
 import { PaymentService } from '../../services/payment.service';
+
+export interface CategoryGroup {
+  parent: PaymentCategory;
+  children: PaymentCategory[];
+}
 
 export interface PaymentFormResult {
   payment: {
@@ -42,6 +47,16 @@ export class PaymentFormComponent implements OnInit {
 
   // --------------- State --------------- //
   categories = signal<PaymentCategory[]>([]);
+
+  /** Categorías agrupadas: raíces con sus subcategorías */
+  groupedCategories = computed<CategoryGroup[]>(() => {
+    const cats = this.categories();
+    const roots = cats.filter((c) => !c.parentId);
+    return roots.map((parent) => ({
+      parent,
+      children: cats.filter((c) => c.parentId === parent.id),
+    }));
+  });
 
   /** '' = Único (se envía como null), el resto son valores del enum */
   readonly frequencyOptions: { value: string; label: string }[] = [

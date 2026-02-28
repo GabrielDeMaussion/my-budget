@@ -45,7 +45,7 @@
       </h2>
       <div class="divider my-1"></div>
 
-      <!-- Add New Category -->
+      <!-- Add New Root Category -->
       <div class="flex gap-2 mb-4">
         <input type="text" class="input input-sm input-bordered flex-1" [(ngModel)]="newCategoryName"
           placeholder="Nueva categoría..." (keydown.enter)="addCategory()" />
@@ -55,20 +55,21 @@
         </button>
       </div>
 
-      <!-- Categories List -->
+      <!-- Categories List (grouped) -->
       @if (isLoading()) {
       <div class="flex justify-center py-8">
         <span class="loading loading-spinner loading-md text-primary"></span>
       </div>
       } @else {
       <div class="flex flex-col gap-1">
-        @for (cat of categories(); track cat.id) {
+        @for (group of groupedCategories(); track group.parent.id) {
+        <!-- Parent Category -->
         <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-300/50 transition-colors group">
-          @if (editingCategoryId() === cat.id) {
+          @if (editingCategoryId() === group.parent.id) {
           <!-- Edit Mode -->
           <input type="text" class="input input-sm input-bordered flex-1" [(ngModel)]="editingCategoryValue"
-            (keydown.enter)="saveEdit(cat)" (keydown.escape)="cancelEdit()" />
-          <button class="btn btn-success btn-xs btn-ghost" (click)="saveEdit(cat)" title="Guardar">
+            (keydown.enter)="saveEdit(group.parent)" (keydown.escape)="cancelEdit()" />
+          <button class="btn btn-success btn-xs btn-ghost" (click)="saveEdit(group.parent)" title="Guardar">
             <i class="bi bi-check-lg"></i>
           </button>
           <button class="btn btn-ghost btn-xs" (click)="cancelEdit()" title="Cancelar">
@@ -76,18 +77,69 @@
           </button>
           } @else {
           <!-- View Mode -->
-          <span class="badge badge-ghost badge-sm">{{ cat.id }}</span>
-          <span class="flex-1 text-sm">{{ cat.value }}</span>
+          <i class="bi bi-folder text-primary/60"></i>
+          <span class="flex-1 text-sm font-medium">{{ group.parent.value }}</span>
           <button class="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
-            (click)="startEdit(cat)" title="Editar">
+            (click)="toggleAddSubcategory(group.parent.id!)" title="Agregar subcategoría">
+            <i class="bi bi-plus-circle text-xs text-primary"></i>
+          </button>
+          <button class="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            (click)="startEdit(group.parent)" title="Editar">
             <i class="bi bi-pencil text-xs"></i>
           </button>
           <button class="btn btn-ghost btn-xs text-error opacity-0 group-hover:opacity-100 transition-opacity"
-            (click)="deleteCategory(cat)" title="Eliminar">
+            (click)="deleteCategory(group.parent)" title="Eliminar">
             <i class="bi bi-trash text-xs"></i>
           </button>
           }
         </div>
+
+        <!-- Add Subcategory Inline Form -->
+        @if (addingSubcategoryTo() === group.parent.id) {
+        <div class="flex gap-2 ml-8 mb-1">
+          <input type="text" class="input input-xs input-bordered flex-1"
+            [(ngModel)]="newSubcategoryName[group.parent.id!]"
+            placeholder="Nueva subcategoría..."
+            (keydown.enter)="addSubcategory(group.parent.id!)"
+            (keydown.escape)="addingSubcategoryTo.set(null)" />
+          <button class="btn btn-primary btn-xs gap-1" (click)="addSubcategory(group.parent.id!)"
+            [disabled]="!(newSubcategoryName[group.parent.id!] || '').trim()">
+            <i class="bi bi-check-lg"></i>
+          </button>
+          <button class="btn btn-ghost btn-xs" (click)="addingSubcategoryTo.set(null)">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        }
+
+        <!-- Subcategories -->
+        @for (sub of group.children; track sub.id) {
+        <div class="flex items-center gap-2 p-2 pl-8 rounded-lg hover:bg-base-300/50 transition-colors group">
+          @if (editingCategoryId() === sub.id) {
+          <!-- Edit Mode -->
+          <input type="text" class="input input-xs input-bordered flex-1" [(ngModel)]="editingCategoryValue"
+            (keydown.enter)="saveEdit(sub)" (keydown.escape)="cancelEdit()" />
+          <button class="btn btn-success btn-xs btn-ghost" (click)="saveEdit(sub)" title="Guardar">
+            <i class="bi bi-check-lg"></i>
+          </button>
+          <button class="btn btn-ghost btn-xs" (click)="cancelEdit()" title="Cancelar">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          } @else {
+          <!-- View Mode -->
+          <i class="bi bi-dash text-base-content/30"></i>
+          <span class="flex-1 text-sm text-base-content/80">{{ sub.value }}</span>
+          <button class="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            (click)="startEdit(sub)" title="Editar">
+            <i class="bi bi-pencil text-xs"></i>
+          </button>
+          <button class="btn btn-ghost btn-xs text-error opacity-0 group-hover:opacity-100 transition-opacity"
+            (click)="deleteCategory(sub)" title="Eliminar">
+            <i class="bi bi-trash text-xs"></i>
+          </button>
+          }
+        </div>
+        }
         } @empty {
         <div class="text-center py-8 text-base-content/40">
           <i class="bi bi-inbox text-3xl block mb-2"></i>

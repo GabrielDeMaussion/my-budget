@@ -24,6 +24,7 @@ import {
 } from '../../utils/date-navigation.util';
 import { PaymentService } from '../../services/payment.service';
 import { AuthService } from '../../services/auth.service';
+import { getCategoryDisplayName } from '../../utils/category.util';
 
 export type DetailView = 'table' | 'charts';
 export type ChartMetric = 'category' | 'state' | 'type';
@@ -128,7 +129,6 @@ export class SummaryComponent implements OnInit, AfterViewInit {
 
     let rows = this.filteredInstances().map((inst) => {
       const payment = this.payments().find((p) => p.id === inst.paymentId);
-      const category = this.categories().find((c) => c.id === payment?.paymentCategoryId);
       const isIncome = payment?.paymentTypeId === this.INCOME_TYPE_ID;
       const totalInstallments = payment?.installments ?? null;
 
@@ -145,7 +145,7 @@ export class SummaryComponent implements OnInit, AfterViewInit {
       return {
         ...inst,
         description: payment?.comments ?? '—',
-        categoryName: category?.value ?? '—',
+        categoryName: getCategoryDisplayName(payment?.paymentCategoryId, this.categories()),
         typeName: isIncome ? 'Ingreso' : 'Gasto',
         typeColor: isIncome ? 'success' : 'error',
         paymentTypeId: payment?.paymentTypeId ?? 0,
@@ -201,8 +201,7 @@ export class SummaryComponent implements OnInit, AfterViewInit {
 
     let filtered = rows.map(inst => {
       const payment = this.payments().find(p => p.id === inst.paymentId);
-      const category = this.categories().find(c => c.id === payment?.paymentCategoryId);
-      return { ...inst, payment, categoryName: category?.value ?? 'Sin categoría', paymentTypeId: payment?.paymentTypeId ?? 0 };
+      return { ...inst, payment, categoryName: getCategoryDisplayName(payment?.paymentCategoryId, this.categories()), paymentTypeId: payment?.paymentTypeId ?? 0 };
     });
 
     if (typeFilter === 'income') filtered = filtered.filter(r => r.paymentTypeId === this.INCOME_TYPE_ID);

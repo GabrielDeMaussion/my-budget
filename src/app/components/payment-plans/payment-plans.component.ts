@@ -18,6 +18,7 @@ import { PaymentInstanceState, getInstanceStateLabel, getInstanceStateColor } fr
 import { PaymentFrequency, getFrequencyLabel } from '../../interfaces/enums/payment-frequency.enum';
 import { PaymentState, getPaymentStateLabel, getPaymentStateColor } from '../../interfaces/enums/payment-state.enum';
 import { generateFiniteInstanceDates, generateIndefiniteInstanceDatesFor5Years } from '../../utils/installment.util';
+import { getCategoryDisplayName } from '../../utils/category.util';
 
 @Component({
     selector: 'app-payment-plans',
@@ -91,8 +92,7 @@ export class PaymentPlansComponent implements OnInit {
         const query = this.searchQuery().toLowerCase().trim();
         if (query) {
             plans = plans.filter((p) => {
-                const cat = this.categories().find((c) => c.id === p.paymentCategoryId);
-                const catName = cat?.value ?? '';
+                const catName = getCategoryDisplayName(p.paymentCategoryId, this.categories());
                 return (
                     (p.comments?.toLowerCase().includes(query) ?? false) ||
                     catName.toLowerCase().includes(query) ||
@@ -110,7 +110,6 @@ export class PaymentPlansComponent implements OnInit {
         const instances = this.allInstances();
 
         let data = plans.map((p) => {
-            const cat = this.categories().find((c) => c.id === p.paymentCategoryId);
             const planInstances = instances.filter((i) => i.paymentId === p.id);
             const paidInstances = planInstances.filter((i) => i.state === PaymentInstanceState.PAID);
             const typeName = p.paymentTypeId === this.INCOME_TYPE_ID ? 'Ingreso' : 'Gasto';
@@ -119,7 +118,7 @@ export class PaymentPlansComponent implements OnInit {
             return {
                 id: p.id,
                 comments: p.comments || '—',
-                categoryName: cat?.value ?? '—',
+                categoryName: getCategoryDisplayName(p.paymentCategoryId, this.categories()),
                 totalAmount: p.totalAmount,
                 frequency: getFrequencyLabel(p.frequency),
                 installments: `${paidInstances.length}/${p.installments}`,
@@ -218,12 +217,11 @@ export class PaymentPlansComponent implements OnInit {
 
     openPlanDetail(payment: Payment): void {
         const instances = this.allInstances().filter((i) => i.paymentId === payment.id).sort((a, b) => a.installmentNumber - b.installmentNumber);
-        const category = this.categories().find((c) => c.id === payment.paymentCategoryId);
 
         this.selectedPayment.set(payment);
         this.selectedInstances.set(instances);
         this.workingInstances.set(instances.map(inst => ({ ...inst })));
-        this.selectedCategoryName.set(category?.value ?? '—');
+        this.selectedCategoryName.set(getCategoryDisplayName(payment.paymentCategoryId, this.categories()));
 
         this.dialogService.open({
             type: 'custom',

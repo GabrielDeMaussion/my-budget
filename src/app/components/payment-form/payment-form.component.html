@@ -19,8 +19,17 @@
       <label class="label"><span class="label-text text-xs">Categoría</span></label>
       <select class="select select-sm select-bordered w-full"
         [(ngModel)]="form.paymentCategoryId">
-        @for (cat of categories(); track cat.id) {
-        <option [ngValue]="cat.id">{{ cat.value }}</option>
+        @for (group of groupedCategories(); track group.parent.id) {
+          @if (group.children.length > 0) {
+            <optgroup [label]="group.parent.value">
+              <option [ngValue]="group.parent.id">{{ group.parent.value }} (general)</option>
+              @for (sub of group.children; track sub.id) {
+                <option [ngValue]="sub.id">{{ sub.value }}</option>
+              }
+            </optgroup>
+          } @else {
+            <option [ngValue]="group.parent.id">{{ group.parent.value }}</option>
+          }
         }
       </select>
     </div>
