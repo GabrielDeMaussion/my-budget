@@ -159,6 +159,7 @@ export class PaymentPlansComponent implements OnInit {
     /** Acciones de la tabla de planes */
     readonly planActions: MenuItem[] = [
         { id: 'detail', label: 'Ver detalle', icon: 'bi-eye' },
+        { id: 'delete', label: 'Eliminar plan', icon: 'bi-trash' },
     ];
 
 
@@ -212,6 +213,8 @@ export class PaymentPlansComponent implements OnInit {
     onPlanAction(event: { actionId: string; item: any }): void {
         if (event.actionId === 'detail') {
             this.openPlanDetail(event.item._payment);
+        } else if (event.actionId === 'delete') {
+            this.deletePlan(event.item._payment);
         }
     }
 
@@ -395,5 +398,45 @@ export class PaymentPlansComponent implements OnInit {
                 }
             }
         });
+    }
+
+    // --------------- Delete Plan --------------- //
+    /**
+     * Elimina un plan de pago completo junto con todas sus instancias.
+     */
+    deletePlan(payment: Payment): void {
+        const instances = this.allInstances().filter((i) => i.paymentId === payment.id);
+        const instanceCount = instances.length;
+        const description = payment.comments || 'Sin descripción';
+
+        this.dialogService
+            .confirm(
+                'Eliminar plan de pago',
+                `¿Estás seguro de eliminar el plan "${description}"? Se eliminarán ${instanceCount} instancia${instanceCount !== 1 ? 's' : ''} asociada${instanceCount !== 1 ? 's' : ''}. Esta acción no se puede deshacer.`,
+                'warning'
+            )
+            .subscribe((confirmed) => {
+                if (!confirmed) return;
+
+                this.isLoading.set(true);
+
+                // First delete all instances, then the payment itself
+                const deleteInstances$ = instances.length > 0
+                    ? from(instances).pipe(
+                        concatMap((inst) => this.paymentService.deletePaymentInstanceById(inst.id!)),
+                        toArray()
+                    )
+                    : of([]);
+
+                deleteInstances$.pipe(
+                    switchMap(() => this.paymentService.deletePayment(payment.id!))
+                ).subscribe({
+                    next: () => this.loadData(),
+                    error: (err) => {
+                        console.error('Error eliminando plan:', err);
+                        this.isLoading.set(false);
+                    },
+                });
+            });
     }
 }
