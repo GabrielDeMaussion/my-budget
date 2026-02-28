@@ -48,6 +48,7 @@ export class IncomesComponent implements OnInit {
   @ViewChild('incomeFormTemplate') incomeFormTemplate!: TemplateRef<any>;
   @ViewChild('detailTemplate') detailTemplate!: TemplateRef<any>;
   @ViewChild('editFormTemplate') editFormTemplate!: TemplateRef<any>;
+  @ViewChild('editScopeTemplate') editScopeTemplate!: TemplateRef<any>;
 
   // --------------- Constants --------------- //
   readonly INCOME_TYPE_ID = 1;
@@ -371,6 +372,11 @@ export class IncomesComponent implements OnInit {
     });
   }
 
+  // --------------- Edit scope state --------------- //
+  futureCount = signal(0);
+  private pendingEditResult: InstanceEditResult | null = null;
+  private pendingEditItem: any = null;
+
   onEditFormSubmit(result: InstanceEditResult): void {
     const item = this.editingItem();
     if (!item) return;
@@ -378,7 +384,6 @@ export class IncomesComponent implements OnInit {
     const payment = this.payments().find((p) => p.id === item.paymentId);
     const isIndefinite = payment?.frequency && !payment?.installments;
 
-    // Update category on the Payment if it changed
     const categoryChanged = payment && result.paymentCategoryId !== payment.paymentCategoryId;
     const updateCategory$ = categoryChanged
       ? this.paymentService.updatePayment(payment.id!, { paymentCategoryId: result.paymentCategoryId }).pipe(switchMap(() => of(void 0)))
@@ -389,31 +394,16 @@ export class IncomesComponent implements OnInit {
         .filter((i) => i.paymentId === item.paymentId && i.paymentDate >= item.paymentDate)
         .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
 
-      const count = futureInstances.length;
+      this.futureCount.set(futureInstances.length);
+      this.pendingEditResult = result;
+      this.pendingEditItem = item;
       this.dialogService.close();
-      this.dialogService
-        .confirm(
-          'Editar ingreso indefinido',
-          `Se modificarán ${count} registro(s): el seleccionado y todos los futuros de esta serie. Los registros anteriores NO se verán afectados. ¿Continuar?`,
-          'info'
-        )
-        .subscribe((confirmed) => {
-          if (confirmed) {
-            updateCategory$.pipe(
-              switchMap(() =>
-                from(futureInstances).pipe(
-                  concatMap((inst) =>
-                    this.paymentService.updatePaymentInstance(inst.id!, {
-                      amount: result.amount,
-                      comments: result.comments,
-                    })
-                  ),
-                  toArray()
-                )
-              )
-            ).subscribe(() => this.loadData());
-          }
-        });
+
+      this.dialogService.open({
+        type: 'custom',
+        title: 'Editar ingreso indefinido',
+        templateRef: this.editScopeTemplate,
+      });
     } else {
       this.dialogService.close();
       updateCategory$.pipe(
@@ -421,8 +411,51 @@ export class IncomesComponent implements OnInit {
           this.paymentService.updatePaymentInstance(item.id, { amount: result.amount, comments: result.comments })
         )
       ).subscribe(() => this.loadData());
+      this.editingItem.set(null);
     }
+  }
+
+  onEditScopeChoice(choice: 'single' | 'all' | 'cancel'): void {
+    this.dialogService.close();
+    const result = this.pendingEditResult;
+    const item = this.pendingEditItem;
+    this.pendingEditResult = null;
+    this.pendingEditItem = null;
     this.editingItem.set(null);
+
+    if (choice === 'cancel' || !result || !item) return;
+
+    const payment = this.payments().find((p) => p.id === item.paymentId);
+    const categoryChanged = payment && result.paymentCategoryId !== payment.paymentCategoryId;
+    const updateCategory$ = categoryChanged
+      ? this.paymentService.updatePayment(payment.id!, { paymentCategoryId: result.paymentCategoryId }).pipe(switchMap(() => of(void 0)))
+      : of(void 0);
+
+    if (choice === 'single') {
+      updateCategory$.pipe(
+        switchMap(() =>
+          this.paymentService.updatePaymentInstance(item.id, { amount: result.amount, comments: result.comments })
+        )
+      ).subscribe(() => this.loadData());
+    } else {
+      const futureInstances = this.allInstances()
+        .filter((i) => i.paymentId === item.paymentId && i.paymentDate >= item.paymentDate)
+        .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
+
+      updateCategory$.pipe(
+        switchMap(() =>
+          from(futureInstances).pipe(
+            concatMap((inst) =>
+              this.paymentService.updatePaymentInstance(inst.id!, {
+                amount: result.amount,
+                comments: result.comments,
+              })
+            ),
+            toArray()
+          )
+        )
+      ).subscribe(() => this.loadData());
+    }
   }
 
   onEditFormCancel(): void {
