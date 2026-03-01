@@ -13,7 +13,29 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-            <!-- Refresh Button -->
+            <!-- View Mode Selector -->
+            <select class="select select-sm select-bordered w-28" [ngModel]="viewMode()"
+                (ngModelChange)="onViewModeChange($event)">
+                @for (opt of viewModeOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+                }
+            </select>
+
+            <!-- Date Navigation -->
+            <div class="join">
+                <button class="btn btn-sm join-item btn-ghost" (click)="prev()">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button class="btn btn-sm join-item btn-ghost no-animation font-semibold min-w-36"
+                    (click)="resetToToday()" title="Volver a hoy">
+                    {{ navigationLabel() }}
+                </button>
+                <button class="btn btn-sm join-item btn-ghost" (click)="next()">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Refresh button -->
             <button class="btn btn-sm btn-ghost gap-1" (click)="loadData()" title="Refrescar">
                 <i class="bi bi-arrow-clockwise"></i>
             </button>

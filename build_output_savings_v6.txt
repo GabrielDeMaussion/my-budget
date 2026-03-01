@@ -1,0 +1,60 @@
+﻿[33mÔØ»[39m Building...
+/*! ­ƒî╝ daisyUI 5.5.18 */
+[32mÔ£ö[39m Building...
+[1mInitial chunk files[22m  [2m | [22m[1mNames[22m                  [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mstyles-4E3GICQS.css[39m  [2m | [22m[2mstyles[22m                 [2m | [22m[36m227.36 kB[39m[2m | [22m               [36m29.15 kB[39m
+[32mchunk-7525FS7F.js[39m    [2m | [22m[2m-[22m                      [2m | [22m[36m180.38 kB[39m[2m | [22m               [36m52.84 kB[39m
+[32mchunk-ZAIF5WAM.js[39m    [2m | [22m[2m-[22m                      [2m | [22m[36m101.00 kB[39m[2m | [22m               [36m25.76 kB[39m
+[32mchunk-MANOMLX7.js[39m    [2m | [22m[2m-[22m                      [2m | [22m [36m35.65 kB[39m[2m | [22m                [36m7.92 kB[39m
+[32mpolyfills-5CFQRCPP.js[39m[2m | [22m[2mpolyfills[22m              [2m | [22m [36m34.59 kB[39m[2m | [22m               [36m11.33 kB[39m
+[32mmain-O5AAA7C7.js[39m     [2m | [22m[2mmain[22m                   [2m | [22m [36m28.69 kB[39m[2m | [22m                [36m7.32 kB[39m
+[32mchunk-K54YMGON.js[39m    [2m | [22m[2m-[22m                      [2m | [22m [36m18.05 kB[39m[2m | [22m                [36m4.70 kB[39m
+[32mchunk-QMH4UVAO.js[39m    [2m | [22m[2m-[22m                      [2m | [22m  [36m3.56 kB[39m[2m | [22m                [36m1.42 kB[39m
+[32mchunk-HG433JWF.js[39m    [2m | [22m[2m-[22m                      [2m | [22m  [36m2.07 kB[39m[2m | [22m              [36m514 bytes[39m
+[32mchunk-XMWOA4F6.js[39m    [2m | [22m[2m-[22m                      [2m | [22m[36m827 bytes[39m[2m | [22m              [36m827 bytes[39m
+[32mchunk-Y6DBXPAW.js[39m    [2m | [22m[2m-[22m                      [2m | [22m[36m419 bytes[39m[2m | [22m              [36m419 bytes[39m
+
+[1m [22m                    [2m | [22m[1mInitial total[22m          [2m | [22m[1m[93m632.59 kB[39m[22m[2m | [22m              [1m142.20 kB[22m
+
+[1mLazy chunk files[22m     [2m | [22m[1mNames[22m                  [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-UUQVGL2B.js[39m    [2m | [22m[2msummary-component[22m      [2m | [22m [36m24.86 kB[39m[2m | [22m                [36m6.56 kB[39m
+[32mchunk-DHUHNN62.js[39m    [2m | [22m[2mpayment-plans-component[22m[2m | [22m [36m21.73 kB[39m[2m | [22m                [36m6.25 kB[39m
+[32mchunk-HK5ZHBYL.js[39m    [2m | [22m[2msavings[22m                [2m | [22m [36m18.88 kB[39m[2m | [22m                [36m5.13 kB[39m
+[32mchunk-S3VBDCJX.js[39m    [2m | [22m[2mincomes-component[22m      [2m | [22m [36m18.18 kB[39m[2m | [22m                [36m5.16 kB[39m
+[32mchunk-IYPZEUV5.js[39m    [2m | [22m[2mexpenses-component[22m     [2m | [22m [36m18.16 kB[39m[2m | [22m                [36m5.18 kB[39m
+[32mchunk-ENXG5JEV.js[39m    [2m | [22m[2msettings-component[22m     [2m | [22m [36m15.99 kB[39m[2m | [22m                [36m4.07 kB[39m
+[32mchunk-23IPYU4B.js[39m    [2m | [22m[2m-[22m                      [2m | [22m [36m15.53 kB[39m[2m | [22m                [36m4.19 kB[39m
+[32mchunk-A4FZS3IG.js[39m    [2m | [22m[2m-[22m                      [2m | [22m [36m10.72 kB[39m[2m | [22m                [36m3.22 kB[39m
+[32mchunk-HQVHBMRO.js[39m    [2m | [22m[2mprofile-component[22m      [2m | [22m  [36m6.87 kB[39m[2m | [22m                [36m2.19 kB[39m
+[32mchunk-A2OU35BG.js[39m    [2m | [22m[2m-[22m                      [2m | [22m  [36m5.03 kB[39m[2m | [22m                [36m1.71 kB[39m
+[32mchunk-UX5AMIUD.js[39m    [2m | [22m[2mnot-found-component[22m    [2m | [22m[36m697 bytes[39m[2m | [22m              [36m697 bytes[39m
+
+Application bundle generation complete. [2.593 seconds] - 2026-03-01T00:26:10.328Z
+
+node.exe : [1m[33m[33mÔû▓ 
+[43;33m[[43;30mWARNING[43;33
+m][0m [1mbundle initial 
+exceeded maximum budget. 
+Budget 500.00 kB was not met 
+by 132.59 kB with a total of 
+632.59 kB.[0m
+En línea: 1 Carácter: 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: ([1m[33m  
+  [33mÔ... 632.59 kB.[0m:   
+ String) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+
+[39m[22m
+Output location: C:\Users\Mario\Desktop\Mio\Programacion\Proyecto Ctrl Gastos\my-budget\dist\my-budget
+

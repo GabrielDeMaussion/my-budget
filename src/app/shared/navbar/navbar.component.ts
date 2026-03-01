@@ -20,7 +20,8 @@ export class NavbarComponent implements OnInit {
     { label: 'Ingresos', route: '/incomes' },
     { label: 'Gastos', route: '/expenses' },
     { label: 'Planes', route: '/payment-plans' },
-    { label: 'Balance General', route: '/summary' }
+    { label: 'Balance General', route: '/summary' },
+    { label: 'Ahorro / Inv.', route: '/savings' }
   ]
 
   // --------------- Init --------------- //

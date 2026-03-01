@@ -32,7 +32,7 @@
             <p class="text-sm text-base-content/50 uppercase tracking-wide">Ingresos</p>
             <p class="text-3xl font-bold text-success">{{ totalIncome() | currency : 'USD' : 'symbol' : '1.2-2' }}</p>
           </div>
-          <div class="bg-success/10 p-3 rounded-full">
+          <div class="bg-success/10 p-3 rounded-md">
             <i class="bi bi-arrow-down-circle text-success text-2xl"></i>
           </div>
         </div>
@@ -52,7 +52,7 @@
             <p class="text-sm text-base-content/50 uppercase tracking-wide">Gastos</p>
             <p class="text-3xl font-bold text-error">{{ totalExpenses() | currency : 'USD' : 'symbol' : '1.2-2' }}</p>
           </div>
-          <div class="bg-error/10 p-3 rounded-full">
+          <div class="bg-error/10 p-3 rounded-md">
             <i class="bi bi-arrow-up-circle text-error text-2xl"></i>
           </div>
         </div>
@@ -73,7 +73,7 @@
               {{ balance() | currency : 'USD' : 'symbol' : '1.2-2' }}
             </p>
           </div>
-          <div class="p-3 rounded-full" [class.bg-success/10]="balance() >= 0" [class.bg-error/10]="balance() < 0">
+          <div class="p-3 rounded-md" [class.bg-success/10]="balance() >= 0" [class.bg-error/10]="balance() < 0">
             @if (balance() >= 0) {
             <i class="bi bi-emoji-smile text-success text-2xl"></i>
             } @else {
@@ -106,7 +106,7 @@
           @for (item of recentActivity(); track item.id) {
           <div class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-base-300/50 transition-colors">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center"
+              <div class="w-10 h-10 rounded-md flex items-center justify-center"
                 [class]="item.isIncome ? 'bg-success/10' : 'bg-error/10'">
                 <i class="bi text-lg"
                   [class]="item.isIncome ? 'bi-arrow-down-left text-success' : 'bi-arrow-up-right text-error'"></i>
@@ -148,11 +148,11 @@
           </h2>
           <div class="divider my-1"></div>
           <div class="flex flex-col gap-2">
-            <button class="btn btn-success btn-sm justify-start gap-2" (click)="navigateTo('/incomes')">
+            <button class="btn btn-success btn-sm justify-start gap-2" (click)="openIncomeForm()">
               <i class="bi bi-plus-circle"></i>
               Registrar ingreso
             </button>
-            <button class="btn btn-error btn-sm justify-start gap-2" (click)="navigateTo('/expenses')">
+            <button class="btn btn-error btn-sm justify-start gap-2" (click)="openExpenseForm()">
               <i class="bi bi-dash-circle"></i>
               Registrar gasto
             </button>
@@ -204,3 +204,12 @@
   </div>
   }
 </div>
+
+<!-- Form templates for dialog -->
+<ng-template #incomeFormTemplate>
+  <app-payment-form [paymentTypeId]="1" (formSubmit)="onFormSubmit($event)" (formCancel)="onFormCancel()" />
+</ng-template>
+
+<ng-template #expenseFormTemplate>
+  <app-payment-form [paymentTypeId]="2" (formSubmit)="onFormSubmit($event)" (formCancel)="onFormCancel()" />
+</ng-template>

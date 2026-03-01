@@ -1,23 +1,34 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { PaymentService } from '../../services/payment.service';
+import { DialogService } from '../../services/dialog.service';
+import { AuthService } from '../../services/auth.service';
 import { PaymentInstance } from '../../interfaces/payment-instance.interface';
 import { Payment } from '../../interfaces/payment.interface';
 import { PaymentType } from '../../interfaces/payment-type.interface';
 import { PaymentCategory } from '../../interfaces/payment-category.interface';
-import { forkJoin } from 'rxjs';
+import { forkJoin, switchMap, from, concatMap, toArray, of } from 'rxjs';
+import { PaymentFormComponent, PaymentFormResult } from '../payment-form/payment-form.component';
+import { generateFiniteInstanceDates, generateIndefiniteInstanceDatesFor5Years } from '../../utils/installment.util';
+import { PaymentInstanceState } from '../../interfaces/enums/payment-instance-state.enum';
 
 @Component({
   selector: 'app-home',
-  imports: [CommonModule],
+  imports: [CommonModule, PaymentFormComponent],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css'],
 })
 export class HomeComponent implements OnInit {
   // --------------- Injects --------------- //
   private readonly paymentService = inject(PaymentService);
+  private readonly dialogService = inject(DialogService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+
+  // --------------- ViewChild --------------- //
+  @ViewChild('incomeFormTemplate') incomeFormTemplate!: TemplateRef<any>;
+  @ViewChild('expenseFormTemplate') expenseFormTemplate!: TemplateRef<any>;
 
   // --------------- State --------------- //
   instances = signal<PaymentInstance[]>([]);
@@ -131,5 +142,97 @@ export class HomeComponent implements OnInit {
 
   navigateTo(route: string): void {
     this.router.navigate([route]);
+  }
+
+  // --------------- Quick Actions / Form --------------- //
+  openIncomeForm(): void {
+    this.dialogService.open({
+      type: 'custom',
+      title: 'Nuevo ingreso',
+      templateRef: this.incomeFormTemplate,
+      wide: true,
+    });
+  }
+
+  openExpenseForm(): void {
+    this.dialogService.open({
+      type: 'custom',
+      title: 'Nuevo gasto',
+      templateRef: this.expenseFormTemplate,
+      wide: true,
+    });
+  }
+
+  onFormCancel(): void {
+    this.dialogService.close();
+  }
+
+  onFormSubmit(result: PaymentFormResult): void {
+    const user = this.authService.authUser();
+    if (!user) return;
+
+    const paymentReq = {
+      ...result.payment,
+      userId: Number(user.sub),
+    };
+
+    this.paymentService
+      .createPayment(paymentReq)
+      .pipe(
+        switchMap((payment) => {
+          const instances = this.buildInstances(payment);
+          if (instances.length === 0) return of([]);
+          return from(instances).pipe(
+            concatMap((inst) => this.paymentService.createPaymentInstance(inst)),
+            toArray()
+          );
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.dialogService.close();
+          this.loadData();
+        },
+        error: (err) => console.error('Error creando pago:', err),
+      });
+  }
+
+  private buildInstances(payment: Payment): any[] {
+    const today = new Date().toISOString().split('T')[0];
+
+    if (!payment.frequency) {
+      return [{
+        paymentId: payment.id!,
+        amount: payment.totalAmount,
+        paymentDate: payment.startDate,
+        installmentNumber: 1,
+        state: payment.startDate <= today ? PaymentInstanceState.PAID : PaymentInstanceState.PENDING,
+        comments: payment.comments || '',
+      }];
+    }
+
+    let dates: string[];
+    let amount: number;
+
+    if (payment.installments) {
+      dates = generateFiniteInstanceDates(
+        payment.frequency, payment.startDate, payment.paymentDay, payment.installments
+      );
+      amount = Math.round((payment.totalAmount / payment.installments) * 100) / 100;
+    } else {
+      dates = generateIndefiniteInstanceDatesFor5Years(
+        payment.frequency, payment.startDate, payment.paymentDay
+      );
+      amount = payment.totalAmount;
+    }
+
+    return dates.map((date, index) => ({
+      paymentId: payment.id!,
+      amount,
+      paymentDate: date,
+      installmentNumber: index + 1,
+      state: date <= today ? PaymentInstanceState.PAID : PaymentInstanceState.PENDING,
+      comments: payment.comments || '',
+    }));
   }
 }

@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
 })
 export class DatabaseService {
     private dbName = 'MyBudgetDB';
-    private dbVersion = 2;
+    private dbVersion = 3;
     private db: IDBDatabase | null = null;
 
     private initPromise: Promise<IDBDatabase>;
@@ -35,6 +35,14 @@ export class DatabaseService {
                 if (!db.objectStoreNames.contains('users')) {
                     const usersStore = db.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
                     usersStore.createIndex('email', 'email', { unique: true });
+                }
+                if (!db.objectStoreNames.contains('savingsGoals')) {
+                    const goalsStore = db.createObjectStore('savingsGoals', { keyPath: 'id', autoIncrement: true });
+                    goalsStore.createIndex('userId', 'userId', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('savingsTransactions')) {
+                    const stStore = db.createObjectStore('savingsTransactions', { keyPath: 'id', autoIncrement: true });
+                    stStore.createIndex('goalId', 'goalId', { unique: false });
                 }
             };
 

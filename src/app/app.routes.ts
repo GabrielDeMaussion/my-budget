@@ -43,6 +43,11 @@ export const routes: Routes = [
         canActivate: [authGuard]
     },
     {
+        path: 'savings',
+        loadComponent: () => import('./components/savings/savings').then(m => m.Savings),
+        canActivate: [authGuard]
+    },
+    {
         path: '404',
         loadComponent: () => import('./components/not-found/not-found.component').then(m => m.NotFoundComponent)
     },

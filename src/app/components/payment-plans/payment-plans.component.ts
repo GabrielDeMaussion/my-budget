@@ -18,7 +18,8 @@ import { PaymentInstanceState, getInstanceStateLabel, getInstanceStateColor } fr
 import { PaymentFrequency, getFrequencyLabel } from '../../interfaces/enums/payment-frequency.enum';
 import { PaymentState, getPaymentStateLabel, getPaymentStateColor } from '../../interfaces/enums/payment-state.enum';
 import { generateFiniteInstanceDates, generateIndefiniteInstanceDatesFor5Years } from '../../utils/installment.util';
-import { getCategoryDisplayName } from '../../utils/category.util';
+import { getCategoryDisplayName, getParentCategoryName } from '../../utils/category.util';
+import { ViewMode, VIEW_MODE_OPTIONS, getDateRange, getNavigationLabel, navigateDate } from '../../utils/date-navigation.util';
 
 @Component({
     selector: 'app-payment-plans',
@@ -57,6 +58,10 @@ export class PaymentPlansComponent implements OnInit {
     selectedStateFilter = signal<string>('');
     sortDirection = signal<'asc' | 'desc'>('desc');
 
+    viewMode = signal<ViewMode>('month');
+    referenceDate = signal(new Date());
+    readonly viewModeOptions = VIEW_MODE_OPTIONS;
+
     // Detail state
     selectedPayment = signal<Payment | null>(null);
     selectedInstances = signal<PaymentInstance[]>([]);
@@ -86,11 +91,19 @@ export class PaymentPlansComponent implements OnInit {
     });
 
     // --------------- Computeds --------------- //
+    dateRange = computed(() => getDateRange(this.referenceDate(), this.viewMode()));
+    navigationLabel = computed(() => getNavigationLabel(this.referenceDate(), this.viewMode()));
+
     /** Planes filtrados: solo recurrentes CON cuotas finitas (excluye indefinidos) */
     filteredPlans = computed(() => {
+        const { start, end } = this.dateRange();
+        const instances = this.allInstances();
+
         let plans = this.payments().filter(
             (p) => !!p.frequency && p.frequency !== PaymentFrequency.ONCE && !!p.installments
         );
+
+        plans = plans.filter(p => instances.some(i => i.paymentId === p.id && i.paymentDate >= start && i.paymentDate <= end));
 
         // Filtro por tipo (ingreso/egreso)
         const typeFilter = this.selectedTypeFilter();
@@ -110,7 +123,7 @@ export class PaymentPlansComponent implements OnInit {
         const query = this.searchQuery().toLowerCase().trim();
         if (query) {
             plans = plans.filter((p) => {
-                const catName = getCategoryDisplayName(p.paymentCategoryId, this.categories());
+                const catName = getParentCategoryName(p.paymentCategoryId, this.categories());
                 return (
                     (p.comments?.toLowerCase().includes(query) ?? false) ||
                     catName.toLowerCase().includes(query) ||
@@ -133,13 +146,22 @@ export class PaymentPlansComponent implements OnInit {
             const typeName = p.paymentTypeId === this.INCOME_TYPE_ID ? 'Ingreso' : 'Gasto';
             const typeColor = p.paymentTypeId === this.INCOME_TYPE_ID ? 'success' : 'error';
 
+            let installmentInfo: string;
+            if (!p.frequency) {
+                installmentInfo = '—';
+            } else if (p.installments === null || p.installments === undefined) {
+                installmentInfo = `${paidInstances.length}/∞`;
+            } else {
+                installmentInfo = p.installments > 1 ? `${paidInstances.length}/${p.installments}` : '—';
+            }
+
             return {
                 id: p.id,
                 comments: p.comments || '—',
-                categoryName: getCategoryDisplayName(p.paymentCategoryId, this.categories()),
+                categoryName: getParentCategoryName(p.paymentCategoryId, this.categories()),
                 totalAmount: p.totalAmount,
                 frequency: getFrequencyLabel(p.frequency),
-                installments: `${paidInstances.length}/${p.installments}`,
+                installments: installmentInfo,
                 stateLabel: getPaymentStateLabel(p.state),
                 stateColor: getPaymentStateColor(p.state),
                 typeName,
@@ -169,7 +191,7 @@ export class PaymentPlansComponent implements OnInit {
         { key: 'categoryName', label: 'Categoría', align: 'left' },
         { key: 'totalAmount', label: 'Monto', type: 'currency', align: 'right' },
         { key: 'frequency', label: 'Frecuencia', align: 'left' },
-        { key: 'installments', label: 'Cuotas Pagas', align: 'center' },
+        { key: 'installments', label: 'Cuotas', type: 'pill', align: 'center' },
         { key: 'startDate', label: 'Inicio', type: 'date', align: 'center' },
         { key: 'stateLabel', label: 'Estado', type: 'badge', badgeColorKey: 'stateColor', align: 'center' },
     ];
@@ -217,6 +239,22 @@ export class PaymentPlansComponent implements OnInit {
     }
 
     // --------------- Filter Methods --------------- //
+    prev(): void {
+        this.referenceDate.set(navigateDate(this.referenceDate(), this.viewMode(), -1));
+    }
+
+    next(): void {
+        this.referenceDate.set(navigateDate(this.referenceDate(), this.viewMode(), 1));
+    }
+
+    resetToToday(): void {
+        this.referenceDate.set(new Date());
+    }
+
+    onViewModeChange(mode: string): void {
+        this.viewMode.set(mode as ViewMode);
+    }
+
     onSearchChange(query: string): void {
         this.searchQuery.set(query);
     }
@@ -526,31 +564,47 @@ export class PaymentPlansComponent implements OnInit {
 
                 this.isLoading.set(true);
 
-                // Update all instances state based on plan state
-                const updateInstances$ = instances.length > 0
-                    ? from(instances).pipe(
-                        concatMap((inst) => {
-                            let instanceState: string;
-                            if (newState === PaymentState.ACTIVE) {
-                                // Past/current → PAID, future → PENDING
-                                instanceState = inst.paymentDate <= today
-                                    ? PaymentInstanceState.PAID
-                                    : PaymentInstanceState.PENDING;
-                            } else if (newState === PaymentState.CANCELLED) {
-                                instanceState = PaymentInstanceState.CANCELLED;
-                            } else {
-                                // COMPLETED → all PAID
-                                instanceState = PaymentInstanceState.PAID;
-                            }
-                            return this.paymentService.updatePaymentInstance(inst.id!, { state: instanceState });
-                        }),
-                        toArray()
-                    )
-                    : of([]);
+                let action$: import('rxjs').Observable<any> = of([]);
+                let paymentUpdates: any = { state: newState };
 
-                // Update the plan state
-                updateInstances$.pipe(
-                    switchMap(() => this.paymentService.updatePayment(payment.id!, { state: newState }))
+                if (newState === PaymentState.CANCELLED) {
+                    const d = new Date();
+                    const firstDayOfCurrentMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+
+                    const instancesToDelete = instances.filter(i => i.paymentDate >= firstDayOfCurrentMonth && i.state !== PaymentInstanceState.PAID);
+                    const instancesToKeep = instances.filter(i => i.paymentDate < firstDayOfCurrentMonth || i.state === PaymentInstanceState.PAID);
+
+                    if (payment.installments) {
+                        paymentUpdates.installments = instancesToKeep.length;
+                    }
+
+                    action$ = instancesToDelete.length > 0
+                        ? from(instancesToDelete).pipe(
+                            concatMap((inst) => this.paymentService.deletePaymentInstanceById(inst.id!)),
+                            toArray()
+                        )
+                        : of([]);
+                } else {
+                    action$ = instances.length > 0
+                        ? from(instances).pipe(
+                            concatMap((inst) => {
+                                let instanceState: string;
+                                if (newState === PaymentState.ACTIVE) {
+                                    instanceState = inst.paymentDate <= today
+                                        ? PaymentInstanceState.PAID
+                                        : PaymentInstanceState.PENDING;
+                                } else {
+                                    instanceState = PaymentInstanceState.PAID;
+                                }
+                                return this.paymentService.updatePaymentInstance(inst.id!, { state: instanceState });
+                            }),
+                            toArray()
+                        )
+                        : of([]);
+                }
+
+                action$.pipe(
+                    switchMap(() => this.paymentService.updatePayment(payment.id!, paymentUpdates))
                 ).subscribe({
                     next: () => this.loadData(),
                     error: (err) => {

@@ -1,0 +1,282 @@
+<div class="flex flex-col gap-4 max-w-5xl mx-auto h-full w-full p-4 sm:p-0">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
+        <div class="flex items-center gap-3">
+            <div class="bg-primary/10 p-2 rounded-lg">
+                <i class="bi bi-piggy-bank text-primary text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold">Ahorro e Inversiones</h1>
+                <p class="text-sm text-base-content/50">Gestiona tus metas y fondos</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button class="btn btn-primary btn-sm gap-2 uppercase tracking-wide" (click)="openCreateGoal()">
+                <i class="bi bi-plus-lg"></i>
+                Nuevo Instrumento
+            </button>
+        </div>
+    </div>
+    <!-- Global Progress by Currency -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (tot of totalsByCurrency(); track tot.currency) {
+        <div class="card bg-base-200/60 shadow-md border border-base-content/10">
+            <div class="card-body p-4 sm:p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="font-semibold text-lg flex items-center gap-2">
+                            <span class="badge badge-accent">{{ tot.currency }}</span> Balance Total
+                        </h3>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-primary">{{ tot.saved | number:'1.2-2' }}</p>
+                    </div>
+                </div>
+
+                @if (tot.progress !== null) {
+                <div class="flex justify-between text-xs text-base-content/60 mt-1 mb-1">
+                    <span>De metas: {{ tot.target | number:'1.2-2' }}</span>
+                    <span>{{ tot.progress }}%</span>
+                </div>
+                <div class="w-full bg-base-200 rounded-full h-3 overflow-hidden">
+                    <div class="bg-primary h-3 rounded-full transition-all duration-700 ease-in-out"
+                        [style.width.%]="tot.progress"></div>
+                </div>
+                } @else {
+                <div class="text-xs text-base-content/60 mt-1">Fondo de crecimiento libre.</div>
+                }
+            </div>
+        </div>
+        } @empty {
+        <div class="col-span-full card bg-base-200 border border-base-content/10 border-dashed">
+            <div class="card-body text-center opacity-60">
+                Todavía no hay balances registrados en ninguna divisa.
+            </div>
+        </div>
+        }
+    </div>
+
+    @if (isLoading()) {
+    <div class="flex justify-center p-10">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+    } @else {
+    <!-- Goals Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        @for (goal of goals(); track goal.id) {
+        <div
+            class="card bg-base-200/50 shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-base-content/10 group relative">
+            <div class="h-2 w-full" [style.background-color]="goal.color"></div>
+
+            <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                <button class="btn btn-circle btn-xs btn-ghost text-base-content/70 hover:text-primary"
+                    (click)="openEditGoal(goal)">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-circle btn-xs btn-ghost text-base-content/70 hover:text-error"
+                    (click)="deleteGoal(goal)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+
+            <div class="card-body p-5">
+                <div class="flex justify-between items-start pr-14 mb-2">
+                    <h3 class="card-title text-lg flex items-center gap-2 m-0 leading-tight">
+                        <div class="w-3 h-3 rounded-full" [style.background-color]="goal.color"></div>
+                        <span class="truncate">{{ goal.name }}</span>
+                    </h3>
+                </div>
+
+                <div class="flex gap-2 mb-3">
+                    <span class="badge badge-sm badge-outline font-bold">{{ goal.currency }}</span>
+                    @if(goal.type === 'GOAL') {
+                    <span class="badge badge-sm badge-info badge-outline"><i class="bi bi-bullseye me-1"></i>
+                        Meta</span>
+                    } @else {
+                    <span class="badge badge-sm badge-success badge-outline"><i class="bi bi-piggy-bank me-1"></i> Fondo
+                        Libre</span>
+                    }
+                </div>
+
+                @if (goal.description) {
+                <p class="text-xs text-base-content/60 mb-2 line-clamp-2 h-8 leading-4">{{ goal.description }}</p>
+                } @else {
+                <div class="h-8 mb-2"></div>
+                }
+
+                @if (goal.type === 'GOAL') {
+                <div class="flex justify-between items-end mb-1">
+                    <p class="text-xl font-bold">{{ goal.currentAmount | number:'1.2-2' }}</p>
+                    <p class="text-xs text-base-content/60">/ {{ goal.targetAmount | number:'1.2-2' }}</p>
+                </div>
+
+                <div class="w-full bg-base-200 rounded-full h-2 mb-1 overflow-hidden">
+                    <div class="h-2 rounded-full transition-all duration-700" [style.background-color]="goal.color"
+                        [style.width.%]="getGoalProgress(goal)"></div>
+                </div>
+                <p class="text-right text-xs font-semibold" [style.color]="goal.color">{{ getGoalProgress(goal) }}%</p>
+                } @else {
+                <div class="flex flex-col mb-1 h-[44px] justify-center">
+                    <p class="text-3xl font-bold text-primary">{{ goal.currentAmount | number:'1.2-2' }}</p>
+                </div>
+                }
+
+                <div class="flex gap-2 mt-4 pt-4 border-t border-base-200">
+                    <button
+                        class="btn flex-1 btn-sm btn-outline border-base-content/20 hover:bg-success hover:border-success hover:text-white"
+                        (click)="openTransaction(goal, 'DEPOSIT')">
+                        <i class="bi bi-arrow-down-circle"></i> Depositar
+                    </button>
+                    <button
+                        class="btn flex-1 btn-sm btn-outline border-base-content/20 hover:bg-error hover:border-error hover:text-white"
+                        (click)="openTransaction(goal, 'WITHDRAWAL')" [disabled]="goal.currentAmount <= 0">
+                        <i class="bi bi-arrow-up-circle"></i> Retirar
+                    </button>
+                </div>
+            </div>
+        </div>
+        } @empty {
+        <div
+            class="col-span-full py-16 text-center text-base-content/60 bg-base-200/30 rounded-box border border-base-content/10 shadow-sm">
+            <div class="w-24 h-24 mx-auto bg-base-300 rounded-full flex items-center justify-center mb-4 text-4xl">
+                <i class="bi bi-piggy-bank opacity-50"></i>
+            </div>
+            <p class="text-lg">Aún no tienes instrumentos de ahorro registrados.</p>
+            <p class="text-sm opacity-70">¡Crea una Meta Financiera o un Fondo para comenzar a invertir y ahorrar!</p>
+        </div>
+        }
+    </div>
+    }
+</div>
+
+<!-- Goal Form Modal -->
+<dialog class="modal" [class.modal-open]="showGoalModal()">
+    <div class="modal-box p-6 overflow-visible w-11/12 max-w-lg">
+        <h3 class="font-bold text-lg border-b border-base-200 pb-3 mb-4 flex items-center gap-2">
+            <i class="bi bi-piggy-bank text-primary"></i>
+            {{ editingGoal() ? 'Editar Instrumento' : 'Nuevo Instrumento' }}
+        </h3>
+
+        <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-xs uppercase font-bold">Moneda /
+                            Divisa</span></label>
+                    <select class="select select-sm select-bordered w-full" [(ngModel)]="goalFormCurrency"
+                        [disabled]="!!editingGoal()">
+                        @for (c of currencies; track c) {
+                        <option [value]="c">{{ c }}</option>
+                        }
+                    </select>
+                    @if(!!editingGoal()) {
+                    <span class="text-[10px] text-base-content/50 mt-1">No editable una vez creado.</span>
+                    }
+                </div>
+
+                <div class="form-control">
+                    <label class="label"><span class="label-text text-xs uppercase font-bold">Tipo de
+                            instrumento</span></label>
+                    <select class="select select-sm select-bordered w-full" [(ngModel)]="goalFormType">
+                        <option value="FUND">Fondo Libre (Crecimiento continuo)</option>
+                        <option value="GOAL">Meta (Objetivo a alcanzar)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-control">
+                <label class="label"><span class="label-text text-xs uppercase font-bold">Nombre del
+                        instrumento</span></label>
+                <input type="text" class="input input-sm input-bordered w-full" [(ngModel)]="goalFormName"
+                    placeholder="Ej: Viaje a Japón, Plazo Fijo, S&P 500" />
+            </div>
+
+            @if (goalFormType() === 'GOAL') {
+            <div class="form-control animate-fade-in">
+                <label class="label"><span class="label-text text-xs uppercase font-bold">Capital Objetivo a alcanzar
+                        (En {{ goalFormCurrency() }})</span></label>
+                <input type="number" class="input input-sm input-bordered w-full" [(ngModel)]="goalFormTarget"
+                    placeholder="0.00" />
+            </div>
+            }
+
+            @if (!editingGoal()) {
+            <div class="form-control animate-fade-in">
+                <label class="label"><span class="label-text text-xs uppercase font-bold">Saldo Inicial (En {{
+                        goalFormCurrency() }})</span></label>
+                <input type="number" class="input input-sm input-bordered w-full" [(ngModel)]="goalFormInitial"
+                    placeholder="0.00" />
+            </div>
+            }
+
+            <div class="form-control">
+                <label class="label"><span class="label-text text-xs uppercase font-bold">Descripción / Detalles
+                        (Opcional)</span></label>
+                <textarea class="textarea textarea-bordered h-16" [(ngModel)]="goalFormDesc"
+                    placeholder="Detalles o motivación..."></textarea>
+            </div>
+
+            <div class="form-control">
+                <label class="label"><span class="label-text text-xs uppercase font-bold">Color
+                        Identificador</span></label>
+                <div class="flex gap-2">
+                    <input type="color" class="w-10 h-10 p-0 border-0 rounded cursor-pointer"
+                        [(ngModel)]="goalFormColor" />
+                    <input type="text" class="input input-sm input-bordered flex-1" [(ngModel)]="goalFormColor" />
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-action mt-6 pt-4 border-t border-base-200">
+            <button class="btn btn-ghost" (click)="showGoalModal.set(false)">Cancelar</button>
+            <button class="btn btn-primary" (click)="saveGoal()"
+                [disabled]="!goalFormName() || (goalFormType() === 'GOAL' && goalFormTarget() <= 0)">
+                Guardar
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Transaction Modal -->
+<dialog class="modal" [class.modal-open]="showTxModal()">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"
+            [ngClass]="txFormType() === 'DEPOSIT' ? 'text-success' : 'text-error'">
+            <i class="bi" [ngClass]="txFormType() === 'DEPOSIT' ? 'bi-arrow-down-circle' : 'bi-arrow-up-circle'"></i>
+            {{ txFormType() === 'DEPOSIT' ? 'Añadir Fondos' : 'Retirar Fondos' }}
+        </h3>
+
+        <div class="bg-base-200 p-3 rounded-lg flex items-center justify-between mb-4">
+            <div>
+                <p class="text-xs uppercase font-bold opacity-60">Instrumento</p>
+                <p class="font-bold truncate">{{ activeTxGoal()?.name }} <span class="badge badge-xs">{{
+                        activeTxGoal()?.currency }}</span></p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs uppercase font-bold opacity-60">Balance actual</p>
+                <p class="font-bold" [style.color]="activeTxGoal()?.color">{{ activeTxGoal()?.currentAmount |
+                    number:'1.2-2' }}</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text text-xs uppercase font-bold">Monto del movimiento (En {{
+                        activeTxGoal()?.currency }})</span></label>
+                <input type="number" class="input input-bordered w-full font-bold text-lg" [(ngModel)]="txFormAmount"
+                    placeholder="0.00" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text text-xs uppercase font-bold">Comentario
+                        (Opcional)</span></label>
+                <input type="text" class="input input-sm input-bordered w-full" [(ngModel)]="txFormNotes"
+                    placeholder="Concepto, mes, etc..." />
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn btn-ghost" (click)="showTxModal.set(false)">Cancelar</button>
+            <button class="btn"
+                [ngClass]="txFormType() === 'DEPOSIT' ? 'btn-success text-white' : 'btn-error text-white'"
+                (click)="saveTransaction()" [disabled]="txFormAmount() <= 0">Confirmar</button>
+        </div>
+    </div>
+</dialog>
